@@ -1,0 +1,128 @@
+.card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
+}
+
+.card:hover {
+  box-shadow: 0 22px 44px -28px rgba(14, 33, 72, 0.4);
+  transform: translateY(-3px);
+  border-color: var(--line-3);
+}
+
+.thumb {
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 9;
+  background: var(--navy-2);
+  overflow: hidden;
+}
+
+.thumbImg {
+  object-fit: cover;
+}
+
+.play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.playGlyph {
+  width: 0;
+  height: 0;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-left: 14px solid var(--blue);
+  margin-left: 4px;
+}
+
+.body {
+  padding: 18px 18px 16px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.metaRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.chip {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--blue);
+  background: var(--chip);
+  padding: 4px 9px;
+  border-radius: 6px;
+}
+
+.date {
+  font-size: 12.5px;
+  color: var(--muted-5);
+}
+
+.refDate {
+  font-size: 12.5px;
+  color: var(--muted-5);
+  margin-bottom: 8px;
+}
+
+.title {
+  font-size: 19px;
+  line-height: 1.22;
+  font-weight: 600;
+  color: var(--navy);
+  margin: 0 0 8px;
+  letter-spacing: -0.01em;
+}
+
+.titleLink {
+  color: inherit;
+  text-decoration: none;
+}
+.titleLink:hover {
+  color: var(--blue-deep);
+}
+
+.short {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--muted-2);
+  margin: 0 0 14px;
+  flex: 1;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+}
+
+.watch {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--blue);
+  text-decoration: none;
+}
+.watch:hover {
+  text-decoration: underline;
+}

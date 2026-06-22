@@ -1,0 +1,140 @@
+:root {
+  /* Brand */
+  --navy: #0e2148;
+  --navy-2: #16294f;
+  --blue: #1e50c8;
+  --blue-deep: #16409f;
+  --blue-hover: #1a2f5c;
+
+  /* Text */
+  --ink: #2b3654;
+  --ink-soft: #1e2b49;
+  --body: #46526c;
+  --muted: #54607a;
+  --muted-2: #6b7895;
+  --muted-3: #7b889f;
+  --muted-4: #8a97b2;
+  --muted-5: #9aa6c0;
+
+  /* Text on navy */
+  --on-navy: #c7d2ea;
+  --on-navy-soft: #aebbd8;
+  --on-navy-accent: #8fb0f2;
+  --on-navy-muted: #7e8db0;
+  --on-navy-muted-2: #6b7795;
+
+  /* Surfaces */
+  --surface: #ffffff;
+  --surface-tint: #f3f6fc;
+  --surface-field: #f6f8fd;
+  --surface-faint: #f8fafe;
+  --chip: #eaf0fc;
+  --chip-2: #f2f6fe;
+  --chip-3: #e8f0fd;
+
+  /* Lines */
+  --line: #e6ecf6;
+  --line-2: #e1e8f4;
+  --line-3: #d8e2f2;
+
+  --maxw: 1180px;
+  --pad-x: 32px;
+
+  --font-serif: var(--font-newsreader), Georgia, serif;
+  --font-sans: var(--font-public-sans), system-ui, -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  color: var(--body);
+  background: var(--surface);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.55;
+}
+
+::selection {
+  background: var(--blue);
+  color: #fff;
+}
+
+a {
+  color: inherit;
+}
+
+img {
+  display: block;
+}
+
+button {
+  font-family: inherit;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-serif);
+}
+
+@keyframes scIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 12px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+/* Shared layout primitive */
+.container {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding-left: var(--pad-x);
+  padding-right: var(--pad-x);
+  width: 100%;
+}
+
+.viewIn {
+  animation: scIn 0.45s ease both;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 620px) {
+  :root {
+    --pad-x: 18px;
+  }
+}

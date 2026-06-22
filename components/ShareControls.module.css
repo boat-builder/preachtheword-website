@@ -1,0 +1,172 @@
+/* Card "Share" pill */
+.cardShare {
+  background: var(--chip-2);
+  border: 1px solid var(--line-2);
+  color: var(--body);
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.cardShare:hover {
+  border-color: var(--blue);
+  color: var(--blue-deep);
+}
+
+/* Hero ghost share (on navy) */
+.heroGhost {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  font-size: 15px;
+  font-weight: 600;
+  padding: 13px 22px;
+  border-radius: 11px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.heroGhost:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+/* Sermon detail share row */
+.shareRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 22px 0 4px;
+  padding: 16px 18px;
+  background: var(--surface-field);
+  border: 1px solid var(--line);
+  border-radius: 13px;
+}
+.shareRowLabel {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--navy);
+  margin-right: 4px;
+}
+.lightBtn {
+  background: #fff;
+  border: 1px solid var(--line-2);
+  color: var(--ink);
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 9px 16px;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.lightBtn:hover {
+  border-color: var(--blue);
+  color: var(--blue-deep);
+}
+.youtubeLink {
+  margin-left: auto;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted-3);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.youtubeLink:hover {
+  color: var(--blue);
+}
+
+/* Theme hero share */
+.themeShare {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding-top: 6px;
+}
+.themeShareLabel {
+  font-size: 13px;
+  color: var(--on-navy-accent);
+  font-weight: 500;
+  margin-right: 2px;
+}
+.navyGhost {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 11px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.navyGhost:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+.navySolid {
+  background: #fff;
+  border: none;
+  color: var(--navy);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 11px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.navySolid:hover {
+  background: var(--chip);
+}
+
+/* Header collection share */
+.headerSolid {
+  background: var(--navy);
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  padding: 9px 16px;
+  border-radius: 9px;
+  cursor: pointer;
+  flex: none;
+  transition: background 0.15s;
+}
+.headerSolid:hover {
+  background: var(--blue-hover);
+}
+
+/* Footer collection share */
+.footerShare {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.footerSolid {
+  background: #fff;
+  border: none;
+  color: var(--navy);
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 10px 16px;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.footerSolid:hover {
+  background: var(--chip);
+}
+.footerGhost {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 10px 16px;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.footerGhost:hover {
+  background: rgba(255, 255, 255, 0.18);
+}

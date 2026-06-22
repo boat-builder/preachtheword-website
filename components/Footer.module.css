@@ -1,0 +1,154 @@
+.footer {
+  background: var(--navy);
+  color: var(--on-navy-soft);
+}
+
+.grid {
+  padding-top: 48px;
+  padding-bottom: 48px;
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 32px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.markRing {
+  width: 12px;
+  height: 12px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  border-top-color: transparent;
+  border-right-color: transparent;
+  transform: rotate(45deg);
+}
+
+.brandName {
+  font-family: var(--font-serif);
+  font-size: 20px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.verse {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--on-navy);
+  margin: 0 0 6px;
+  max-width: 42ch;
+}
+
+.ref {
+  font-size: 13px;
+  color: var(--on-navy-muted);
+  margin: 0;
+}
+
+.heading {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--on-navy-muted);
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+
+/* The contact heading in the first column sits below the verse. */
+.brand + .verse,
+.verse + .ref {
+  /* spacing handled by margins above */
+}
+
+.contact {
+  font-size: 14px;
+  color: var(--on-navy);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.contact:hover {
+  color: #fff;
+}
+
+/* Push the "Contact" heading away from the reference line in column 1 */
+.ref + .heading {
+  margin-top: 26px;
+  margin-bottom: 8px;
+}
+
+.links {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.link {
+  text-align: left;
+  font-size: 14px;
+  color: var(--on-navy);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.link:hover {
+  color: #fff;
+}
+
+.blurb {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--on-navy-soft);
+  margin: 0 0 14px;
+}
+
+.bottom {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.bottomInner {
+  padding-top: 18px;
+  padding-bottom: 18px;
+  font-size: 12.5px;
+  color: var(--on-navy-muted-2);
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.bottomLink {
+  color: var(--on-navy-muted-2);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.bottomLink:hover {
+  color: var(--on-navy);
+}
+
+@media (max-width: 920px) {
+  .grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 36px;
+  }
+}

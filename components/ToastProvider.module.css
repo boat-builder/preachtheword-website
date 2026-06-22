@@ -1,0 +1,25 @@
+.toast {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 90;
+  background: var(--navy);
+  color: #fff;
+  padding: 13px 22px;
+  border-radius: 11px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 16px 40px -12px rgba(14, 33, 72, 0.6);
+  animation: toastIn 0.25s ease both;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #5b8def;
+}
