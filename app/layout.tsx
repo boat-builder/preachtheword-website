@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Newsreader, Public_Sans } from 'next/font/google';
+import { ClerkProvider } from '@clerk/nextjs';
 import { SITE, absoluteUrl } from '@/lib/site';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -89,26 +90,31 @@ export default function RootLayout({
   };
 
   return (
-    <html
-      lang="en"
-      data-scroll-behavior="smooth"
-      className={`${publicSans.variable} ${newsreader.variable}`}
-    >
-      <body>
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
-        />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
-        />
-        <ToastProvider>
-          <Header />
-          {children}
-          <Footer />
-        </ToastProvider>
-      </body>
-    </html>
+    // ClerkProvider supplies auth context to the /admin panel. It is compatible
+    // with static rendering — public pages stay statically generated because they
+    // never call Clerk's auth()/currentUser().
+    <ClerkProvider>
+      <html
+        lang="en"
+        data-scroll-behavior="smooth"
+        className={`${publicSans.variable} ${newsreader.variable}`}
+      >
+        <body>
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+          />
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
+          />
+          <ToastProvider>
+            <Header />
+            {children}
+            <Footer />
+          </ToastProvider>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }
