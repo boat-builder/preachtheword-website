@@ -41,8 +41,8 @@ The canonical production origin (`https://www.preachtheword.faith`, used for can
 URLs, OG tags, sitemap, and share links) is fixed in `lib/site.ts` — not an env var.
 
 The **admin panel** needs a few secrets (GitHub token, Clerk keys) — see
-[`docs/setup.md`](docs/setup.md) and [`.env.example`](.env.example). The public site
-builds and runs without any of them.
+[`.env.example`](.env.example) for the variables and [`docs/admin-backend.md`](docs/admin-backend.md)
+for how the admin works. The public site builds and runs without any of them.
 
 ## Develop
 
