@@ -132,7 +132,7 @@ export function createSermon(
     updatedAt: now,
   };
 
-  if (parsed.featured) {
+  if (parsed.featured === true) {
     clearFeatured(next, null, now);
     sermon.featured = true;
   }
@@ -176,10 +176,13 @@ export function updateSermon(
   // buildSermonFields omits transcript when empty; clear a now-removed transcript.
   if (!(parsed.transcript && parsed.transcript.trim())) delete sermon.transcript;
 
-  if (parsed.featured) {
+  // Tri-state featured: only change it on an explicit intent. Omitted (undefined)
+  // ⇒ preserve the CURRENT stored flag, so a form edit can't un-feature the hero
+  // (and can't clobber a concurrent feature change made by another operator).
+  if (parsed.featured === true) {
     clearFeatured(next, id, now);
     sermon.featured = true;
-  } else {
+  } else if (parsed.featured === false) {
     sermon.featured = false;
   }
 
@@ -196,6 +199,14 @@ export function deleteSermon(
   const next = clone(content);
   const sermon = next.sermons.find((s) => s.id === id);
   if (!sermon) throw new ContentError('Sermon not found');
+
+  // The public site needs at least one sermon (the home hero falls back to the
+  // first sermon). Refuse to delete down to an empty library.
+  if (next.sermons.length <= 1) {
+    throw new ContentError(
+      'You can’t remove the last sermon — the site needs at least one message.',
+    );
+  }
 
   if (sermon.featured) {
     // Don't leave the home page heroless (spec §9).

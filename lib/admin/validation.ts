@@ -71,7 +71,10 @@ export const sermonInputSchema = z.object({
     .regex(DATE_RE, 'Date must be in YYYY-MM-DD format')
     .refine(isValidCalendarDate, 'Not a valid calendar date'),
   ref: z.string().trim().min(1, 'Scripture reference is required'),
-  featured: z.boolean().optional().default(false),
+  // Tri-state: true ⇒ feature, false ⇒ un-feature, omitted ⇒ leave as-is.
+  // The sermon form has no featured control, so it omits this on edit and the
+  // current featured flag is preserved server-side (no stale-snapshot un-feature).
+  featured: z.boolean().optional(),
 });
 
 /** Loose shape the UI passes in (videoId may be a URL, long may be a string). */

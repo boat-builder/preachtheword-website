@@ -2,13 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useClerk } from '@clerk/nextjs';
-import {
-  THEMES,
-  formatAdminDate,
-  slugify,
-  todayIso,
-  type ThemeKey,
-} from '@/lib/admin';
+import { THEMES, formatAdminDate, todayIso, type ThemeKey } from '@/lib/admin';
+// Use the canonical slugifier the server uses, so client preview/validation and
+// the stored slug always agree (transliterates accents, drops apostrophes).
+import { slugify } from '@/lib/admin/slugify';
 import { themeName, thumbUrl, watchUrl } from '@/lib/sermons';
 import type { ContentFile, SermonRecord } from '@/lib/admin/types';
 import type { SermonInput } from '@/lib/admin/validation';
@@ -65,6 +62,9 @@ export default function AdminApp({ initialContent, operator }: AdminAppProps) {
   const [origSlug, setOrigSlug] = useState<string | null>(null);
   const [fetchMsg, setFetchMsg] = useState('');
   const [fetchKind, setFetchKind] = useState<'' | 'ok' | 'err'>('');
+  // Whether the operator has hand-edited the slug (so a later title edit won't
+  // clobber their custom web address while adding).
+  const [slugTouched, setSlugTouched] = useState(false);
 
   // Tags view
   const [tagEdit, setTagEdit] = useState<string | null>(null); // tag id
@@ -74,6 +74,7 @@ export default function AdminApp({ initialContent, operator }: AdminAppProps) {
 
   // Overlays
   const [modal, setModal] = useState<ModalState | null>(null);
+  const [modalError, setModalError] = useState('');
   const [toast, setToast] = useState<string | null>(null);
   const [toastSeq, setToastSeq] = useState(0);
   const [publishing, setPublishing] = useState<string | null>(null);
@@ -112,13 +113,43 @@ export default function AdminApp({ initialContent, operator }: AdminAppProps) {
     setPublishing(m);
     setPubSeq((n) => n + 1);
   };
-  const openModal = (m: ModalState) => setModal(m);
-  const closeModal = () => setModal(null);
+  const openModal = (m: ModalState) => {
+    setModalError('');
+    setModal(m);
+  };
+  const closeModal = () => {
+    setModalError('');
+    setModal(null);
+  };
 
-  /** Re-sync the content store from the server (after a successful write). */
-  const refresh = async () => {
+  /**
+   * Run a mutation with the `busy` flag set (drives disabled buttons), always
+   * cleared in finally. Re-entrancy is already prevented two ways: every trigger
+   * button is disabled={busy}, and the backend's optimistic-concurrency (sha) +
+   * slug-uniqueness reject a duplicate commit, so a sub-frame double-click can't
+   * create a duplicate sermon.
+   */
+  const exclusive = async (fn: () => Promise<void>) => {
+    setBusy(true);
+    try {
+      await fn();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /**
+   * Re-sync the content store from the server after a write. Returns false if the
+   * re-read failed (the write itself still committed) so callers can warn instead
+   * of falsely implying the on-screen list is up to date.
+   */
+  const refresh = async (): Promise<boolean> => {
     const res = await getContent();
-    if (res.ok) setContent(res.data);
+    if (res.ok) {
+      setContent(res.data);
+      return true;
+    }
+    return false;
   };
 
   /** Map server fieldErrors (SermonInput keys) onto the form's error keys. */
@@ -197,6 +228,7 @@ export default function AdminApp({ initialContent, operator }: AdminAppProps) {
     setForm(blankForm());
     setErrors({});
     setOrigSlug(null);
+    setSlugTouched(false);
     setFetchMsg('');
     setFetchKind('');
     setView('form');
@@ -210,6 +242,7 @@ export default function AdminApp({ initialContent, operator }: AdminAppProps) {
     setForm(toForm(s));
     setErrors({});
     setOrigSlug(s.slug);
+    setSlugTouched(true); // never auto-derive an existing sermon's slug
     setFetchMsg('');
     setFetchKind('');
     setView('form');
@@ -219,12 +252,16 @@ export default function AdminApp({ initialContent, operator }: AdminAppProps) {
   const cancelForm = () => setView('library');
 
   const setField = (key: keyof FormState, value: string) => {
+    if (key === 'slug') setSlugTouched(true);
     setForm((f) => {
       if (!f) return f;
       const next: FormState = { ...f, [key]: value };
-      // Auto-suggest the slug from the title only while adding (never re-derive
-      // an existing sermon's slug — that's destructive, spec §2.3).
-      if (key === 'title' && formMode === 'add') next.slug = slugify(value);
+      // Auto-suggest the slug from the title only while adding AND only until the
+      // operator hand-edits it (never re-derive an existing sermon's slug — that's
+      // destructive, spec §2.3).
+      if (key === 'title' && formMode === 'add' && !slugTouched) {
+        next.slug = slugify(value);
+      }
       return next;
     });
   };
@@ -259,7 +296,7 @@ export default function AdminApp({ initialContent, operator }: AdminAppProps) {
         };
         if (filledTitle) {
           next.title = data.title;
-          next.slug = slugify(data.title);
+          if (!slugTouched) next.slug = slugify(data.title);
         }
         if (filledDate) next.date = data.date;
         return next;
@@ -312,63 +349,61 @@ export default function AdminApp({ initialContent, operator }: AdminAppProps) {
     return e;
   };
 
-  const buildInput = (f: FormState): SermonInput => {
-    const current = f.id ? sermons.find((s) => s.id === f.id) : undefined;
-    return {
-      videoId: f.videoId || f.videoUrl,
-      title: f.title.trim(),
-      short: f.short.trim(),
-      long: f.longText, // server splits paragraphs on blank lines
-      transcript: f.transcript,
-      tags: f.tags, // tag ids
-      category: f.category as ThemeKey,
-      slug: f.slug || undefined,
-      date: f.date,
-      ref: f.ref.trim(),
-      // The form has no featured control (featuring is a library action). Preserve
-      // the existing flag on edit so saving never silently un-features the hero.
-      featured: formMode === 'edit' ? Boolean(current?.featured) : false,
-    };
-  };
+  const buildInput = (f: FormState): SermonInput => ({
+    videoId: f.videoId || f.videoUrl,
+    title: f.title.trim(),
+    short: f.short.trim(),
+    long: f.longText, // server splits paragraphs on blank lines
+    transcript: f.transcript,
+    tags: f.tags, // tag ids
+    category: f.category as ThemeKey,
+    // Normalize the slug exactly as the server does, so the client never sends a
+    // value the server will reject. Omitting it lets the server auto-generate.
+    slug: slugify(f.slug) || undefined,
+    date: f.date,
+    ref: f.ref.trim(),
+    // `featured` intentionally omitted: the form has no featured control, so it
+    // carries no feature/un-feature intent. The server preserves the current flag
+    // on edit (tri-state) — no stale-snapshot un-feature.
+  });
 
   const commitSave = async () => {
-    if (!form || busy) return;
+    if (!form) return;
     const f = form;
     const input = buildInput(f);
-    setBusy(true);
 
-    if (formMode === 'add') {
-      const res = await createSermon(input);
-      setBusy(false);
-      if (!res.ok) {
-        applyServerFieldErrors(res.fieldErrors);
-        toastMsg(res.error || 'Could not save. Please try again.');
-        return;
+    await exclusive(async () => {
+      if (formMode === 'add') {
+        const res = await createSermon(input);
+        if (!res.ok) {
+          applyServerFieldErrors(res.fieldErrors);
+          toastMsg(res.error || 'Could not save. Please try again.');
+          return;
+        }
+        const synced = await refresh();
+        setView('library');
+        publish(
+          `“${f.title.trim()}” is publishing — it’ll appear on the site in a minute or two.`,
+        );
+        toastMsg(synced ? 'Sermon added' : 'Saved — reload to see the updated list.');
+      } else {
+        const res = await updateSermon(f.id as string, input);
+        if (!res.ok) {
+          applyServerFieldErrors(res.fieldErrors);
+          toastMsg(res.error || 'Could not save. Please try again.');
+          return;
+        }
+        const synced = await refresh();
+        setView('library');
+        const slugNote = res.data.slugChanged
+          ? ' The old web address now redirects to the new one.'
+          : '';
+        publish(
+          `Your changes to “${f.title.trim()}” are publishing — live on the site in a minute or two.${slugNote}`,
+        );
+        toastMsg(synced ? 'Changes saved' : 'Saved — reload to see the latest.');
       }
-      await refresh();
-      setView('library');
-      publish(
-        `“${f.title.trim()}” is publishing — it’ll appear on the site in a minute or two.`,
-      );
-      toastMsg('Sermon added');
-    } else {
-      const res = await updateSermon(f.id as string, input);
-      setBusy(false);
-      if (!res.ok) {
-        applyServerFieldErrors(res.fieldErrors);
-        toastMsg(res.error || 'Could not save. Please try again.');
-        return;
-      }
-      await refresh();
-      setView('library');
-      const slugNote = res.data.slugChanged
-        ? ' The old web address now redirects to the new one.'
-        : '';
-      publish(
-        `Your changes to “${f.title.trim()}” are publishing — live on the site in a minute or two.${slugNote}`,
-      );
-      toastMsg('Changes saved');
-    }
+    });
   };
 
   const trySave = () => {
@@ -413,65 +448,81 @@ export default function AdminApp({ initialContent, operator }: AdminAppProps) {
           ? ` It replaces “${cur.title}” — there is only ever one featured sermon.`
           : ''),
       confirm: 'Feature this sermon',
-      onConfirm: async () => {
-        closeModal();
-        setBusy(true);
-        const res = await setFeaturedSermon(id);
-        setBusy(false);
-        if (!res.ok) {
-          toastMsg(res.error || 'Could not update the featured sermon.');
-          return;
-        }
-        await refresh();
-        publish(
-          `“${s.title}” is now the featured sermon — updating on the site shortly.`,
-        );
-        toastMsg('Featured sermon updated');
-      },
+      onConfirm: () =>
+        exclusive(async () => {
+          closeModal();
+          const res = await setFeaturedSermon(id);
+          if (!res.ok) {
+            toastMsg(res.error || 'Could not update the featured sermon.');
+            return;
+          }
+          const synced = await refresh();
+          publish(
+            `“${s.title}” is now the featured sermon — updating on the site shortly.`,
+          );
+          toastMsg(
+            synced ? 'Featured sermon updated' : 'Saved — reload to see the latest.',
+          );
+        }),
     });
   };
 
   // Delete a non-featured sermon (no replacement needed).
-  const runDelete = async (id: string, title: string) => {
-    setBusy(true);
-    const res = await deleteSermon(id);
-    setBusy(false);
-    if (!res.ok) {
-      toastMsg(res.error || 'Could not remove the sermon.');
-      return;
-    }
-    closeModal();
-    await refresh();
-    publish(`“${title}” is being removed from the site.`);
-    toastMsg('Sermon removed');
-  };
+  const runDelete = (id: string, title: string) =>
+    exclusive(async () => {
+      const res = await deleteSermon(id);
+      if (!res.ok) {
+        setModalError(res.error || 'Could not remove the sermon.');
+        return; // keep the modal open
+      }
+      closeModal();
+      const synced = await refresh();
+      publish(`“${title}” is being removed from the site.`);
+      toastMsg(synced ? 'Sermon removed' : 'Removed — reload to see the latest.');
+    });
 
   // Confirm handler for the featured-delete modal — reads the current replacement
   // choice from state (not a stale closure), then deletes with it.
-  const confirmFeaturedDelete = async () => {
-    const id = deleteTargetId;
-    if (!id || busy) return;
-    const target = sermons.find((s) => s.id === id);
-    setBusy(true);
-    const res = await deleteSermon(id, deleteReplacement || undefined);
-    setBusy(false);
-    if (!res.ok) {
-      // e.g. no replacement chosen — keep the modal open so one can be picked.
-      toastMsg(res.error || 'Could not remove the sermon.');
-      return;
-    }
-    closeModal();
-    setDeleteTargetId(null);
-    await refresh();
-    publish(`“${target?.title ?? 'The sermon'}” is being removed from the site.`);
-    toastMsg('Sermon removed');
-  };
+  const confirmFeaturedDelete = () =>
+    exclusive(async () => {
+      const id = deleteTargetId;
+      if (!id) return;
+      const target = sermons.find((s) => s.id === id);
+      const res = await deleteSermon(id, deleteReplacement || undefined);
+      if (!res.ok) {
+        // e.g. replacement vanished — surface it inline and keep the modal open.
+        setModalError(
+          res.fieldErrors?.replacementFeaturedId?.[0] ||
+            res.error ||
+            'Could not remove the sermon.',
+        );
+        return;
+      }
+      closeModal();
+      setDeleteTargetId(null);
+      const synced = await refresh();
+      publish(`“${target?.title ?? 'The sermon'}” is being removed from the site.`);
+      toastMsg(synced ? 'Sermon removed' : 'Removed — reload to see the latest.');
+    });
 
   const askDelete = (id: string) => {
     const s = sermons.find((x) => x.id === id);
     if (!s) return;
     const others = sermons.filter((x) => x.id !== id);
-    const needsReplacement = !!s.featured && others.length > 0;
+
+    // The site needs at least one sermon (home hero) — block the last delete.
+    if (others.length === 0) {
+      openModal({
+        kind: 'info',
+        single: true,
+        title: 'You can’t remove the last sermon',
+        body: 'The site needs at least one message for the home page. Add another sermon before removing this one.',
+        confirm: 'Got it',
+      });
+      return;
+    }
+
+    const needsReplacement = !!s.featured; // others.length > 0 guaranteed here
 
     let body = `Removing “${s.title}” takes it off the public site immediately. Anyone who saved or shared its link will no longer find it. This can’t be undone.`;
     if (needsReplacement) {
@@ -507,18 +558,18 @@ export default function AdminApp({ initialContent, operator }: AdminAppProps) {
 
   const addTag = async () => {
     const n = newTag.trim();
-    if (!n || busy) return;
-    setBusy(true);
-    const res = await createTag(n);
-    setBusy(false);
-    if (!res.ok) {
-      setTagErr(res.fieldErrors?.label?.[0] || res.error || 'Could not add tag.');
-      return;
-    }
-    await refresh();
-    setNewTag('');
-    setTagErr('');
-    toastMsg('Tag added');
+    if (!n) return;
+    await exclusive(async () => {
+      const res = await createTag(n);
+      if (!res.ok) {
+        setTagErr(res.fieldErrors?.label?.[0] || res.error || 'Could not add tag.');
+        return;
+      }
+      const synced = await refresh();
+      setNewTag('');
+      setTagErr('');
+      toastMsg(synced ? 'Tag added' : 'Added — reload to see the latest.');
+    });
   };
 
   const startTagEdit = (id: string) => {
@@ -532,42 +583,39 @@ export default function AdminApp({ initialContent, operator }: AdminAppProps) {
   };
   const saveTagEdit = async () => {
     const id = tagEdit;
-    if (!id || busy) return;
+    if (!id) return;
     const nn = tagEditVal.trim();
-    if (!nn) {
+    if (!nn || nn === tagLabel.get(id)) {
       cancelTagEdit();
       return;
     }
-    if (nn === tagLabel.get(id)) {
+    await exclusive(async () => {
+      const res = await renameTag(id, nn);
+      if (!res.ok) {
+        setTagErr(
+          res.fieldErrors?.label?.[0] || res.error || 'Could not rename tag.',
+        );
+        return;
+      }
+      const synced = await refresh();
       cancelTagEdit();
-      return;
-    }
-    setBusy(true);
-    const res = await renameTag(id, nn);
-    setBusy(false);
-    if (!res.ok) {
-      setTagErr(res.fieldErrors?.label?.[0] || res.error || 'Could not rename tag.');
-      return;
-    }
-    await refresh();
-    cancelTagEdit();
-    setTagErr('');
-    toastMsg('Tag renamed');
+      setTagErr('');
+      toastMsg(synced ? 'Tag renamed' : 'Renamed — reload to see the latest.');
+    });
   };
 
-  const doRetire = (id: string, retired: boolean) => async () => {
-    if (busy) return;
-    closeModal();
-    setBusy(true);
-    const res = await setTagRetired(id, retired);
-    setBusy(false);
-    if (!res.ok) {
-      toastMsg(res.error || 'Could not update the tag.');
-      return;
-    }
-    await refresh();
-    toastMsg(retired ? 'Tag retired' : 'Tag restored');
-  };
+  const doRetire = (id: string, retired: boolean) => () =>
+    exclusive(async () => {
+      closeModal();
+      const res = await setTagRetired(id, retired);
+      if (!res.ok) {
+        toastMsg(res.error || 'Could not update the tag.');
+        return;
+      }
+      const synced = await refresh();
+      const done = retired ? 'Tag retired' : 'Tag restored';
+      toastMsg(synced ? done : `${done} — reload to see the latest.`);
+    });
 
   const askRetireTag = (id: string) => {
     const label = tagLabel.get(id) ?? '';
@@ -596,19 +644,17 @@ export default function AdminApp({ initialContent, operator }: AdminAppProps) {
       title: 'Delete this tag?',
       body: `“${label}” isn’t used by any sermon. Deleting removes it permanently. This can’t be undone.`,
       confirm: 'Delete tag',
-      onConfirm: async () => {
-        if (busy) return;
-        closeModal();
-        setBusy(true);
-        const res = await deleteTag(id);
-        setBusy(false);
-        if (!res.ok) {
-          toastMsg(res.error || 'Could not delete the tag.');
-          return;
-        }
-        await refresh();
-        toastMsg('Tag deleted');
-      },
+      onConfirm: () =>
+        exclusive(async () => {
+          closeModal();
+          const res = await deleteTag(id);
+          if (!res.ok) {
+            toastMsg(res.error || 'Could not delete the tag.');
+            return;
+          }
+          const synced = await refresh();
+          toastMsg(synced ? 'Tag deleted' : 'Deleted — reload to see the latest.');
+        }),
     });
   };
 
@@ -857,6 +903,11 @@ export default function AdminApp({ initialContent, operator }: AdminAppProps) {
                   </option>
                 ))}
               </select>
+            )}
+            {modalError && (
+              <div className={styles.errText} style={{ marginTop: 8 }}>
+                {modalError}
+              </div>
             )}
             <div className={styles.modalActions}>
               {!modal.single && (
