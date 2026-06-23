@@ -89,7 +89,8 @@ export default async function SermonPage({
       url: SITE.url,
     },
     about: themeName(sermon.category),
-    transcript: sermon.transcript,
+    // Omit the transcript entirely when absent (D6 / spec §8).
+    ...(sermon.transcript ? { transcript: sermon.transcript } : {}),
     inLanguage: 'en',
   };
 
@@ -170,7 +171,7 @@ export default async function SermonPage({
           </div>
         </div>
 
-        <Transcript text={sermon.transcript} />
+        {sermon.transcript && <Transcript text={sermon.transcript} />}
       </div>
 
       {related.length > 0 && (

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { SITE } from '@/lib/site';
 import { THEMES } from '@/lib/sermons';
 import { CollectionShareFooter } from './ShareControls';
@@ -12,9 +13,13 @@ export default function Footer() {
       <div className={`container ${styles.grid}`}>
         <div>
           <div className={styles.brand}>
-            <span className={styles.mark}>
-              <span className={styles.markRing} />
-            </span>
+            <Image
+              src="/logo.png"
+              alt=""
+              width={36}
+              height={36}
+              className={styles.mark}
+            />
             <span className={styles.brandName}>{SITE.name}</span>
           </div>
           <p className={styles.verse}>“{SITE.verse}”</p>

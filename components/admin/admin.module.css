@@ -260,14 +260,9 @@ textarea.field {
   height: 36px;
   border-radius: 9px;
   background: #0e2148;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  object-fit: cover;
+  display: block;
   flex: none;
-}
-.sideMark .markRing {
-  width: 12px;
-  height: 12px;
 }
 .sideBrandName {
   font-family: var(--font-serif);

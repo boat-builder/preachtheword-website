@@ -26,7 +26,8 @@ export type FormErrorKey =
   | 'category'
   | 'ref'
   | 'date'
-  | 'slug';
+  | 'slug'
+  | 'tags';
 
 export type FormErrors = Partial<Record<FormErrorKey, string>>;
 
@@ -39,5 +40,10 @@ export interface ModalState {
   confirm: string;
   /** Single-action modal (just an acknowledgement, no Cancel). */
   single?: boolean;
+  /**
+   * When deleting the featured sermon, the operator must pick a replacement hero.
+   * If present, the modal renders a <select> of these options (see AdminApp).
+   */
+  replacementOptions?: { id: string; title: string }[];
   onConfirm?: () => void;
 }

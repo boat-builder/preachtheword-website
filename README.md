@@ -37,13 +37,12 @@ canonical library page is indexed.
 
 ## Configuration
 
-Set the canonical production origin (used for canonical URLs, OG tags, sitemap,
-and share links). Defaults to `https://preachtheword.faith`:
+The canonical production origin (`https://www.preachtheword.faith`, used for canonical
+URLs, OG tags, sitemap, and share links) is fixed in `lib/site.ts` — not an env var.
 
-```bash
-# .env.local
-NEXT_PUBLIC_SITE_URL=https://your-domain.example
-```
+The **admin panel** needs a few secrets (GitHub token, Clerk keys) — see
+[`.env.example`](.env.example) for the variables and [`docs/admin-backend.md`](docs/admin-backend.md)
+for how the admin works. The public site builds and runs without any of them.
 
 ## Develop
 

@@ -30,7 +30,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   const sermonRoutes: MetadataRoute.Sitemap = SERMONS.map((s) => ({
     url: `${SITE.url}/sermons/${s.slug}`,
-    lastModified: new Date(s.date),
+    // Prefer updatedAt so editing a sermon's body (without touching its date)
+    // still signals freshness to crawlers; fall back to the content date.
+    lastModified: new Date(s.updatedAt ?? s.date),
     changeFrequency: 'monthly',
     priority: 0.8,
   }));

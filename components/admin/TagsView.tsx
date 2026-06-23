@@ -1,11 +1,17 @@
 import styles from './admin.module.css';
 
 export interface TagRow {
+  id: string;
   name: string;
   usageLabel: string;
+  retired: boolean;
+  /** Hard delete is only offered for tags no sermon uses. */
+  canDelete: boolean;
   editing: boolean;
   onEdit: () => void;
   onRetire: () => void;
+  onRestore: () => void;
+  onDelete: () => void;
 }
 
 interface TagsViewProps {
@@ -35,8 +41,10 @@ export default function TagsView({
     <div className={`${styles.tagsWrap} ${styles.viewIn}`}>
       <h1 className={styles.pageTitle}>Topic tags</h1>
       <p className={styles.tagsIntro}>
-        The list operators choose from when tagging a sermon. A tag still
-        attached to a sermon can&rsquo;t be retired.
+        The list operators choose from when tagging a sermon — and the
+        &ldquo;Looking for a word on…&rdquo; chips on the home page. Retiring a tag
+        hides it from those lists but keeps it on sermons already using it; a tag no
+        sermon uses can be deleted outright.
       </p>
 
       <div className={styles.addTagCard}>
@@ -66,7 +74,7 @@ export default function TagsView({
 
       <div className={styles.tagList}>
         {tagRows.map((t) => (
-          <div key={t.name} className={styles.tagRow}>
+          <div key={t.id} className={styles.tagRow}>
             {t.editing ? (
               <>
                 <input
@@ -100,7 +108,14 @@ export default function TagsView({
               </>
             ) : (
               <>
-                <span className={styles.tagName}>{t.name}</span>
+                <span className={styles.tagName}>
+                  {t.name}
+                  {t.retired && (
+                    <span className={styles.optionalPill} style={{ marginLeft: 8 }}>
+                      Retired
+                    </span>
+                  )}
+                </span>
                 <span className={styles.tagUsage}>{t.usageLabel}</span>
                 <button
                   type="button"
@@ -109,13 +124,32 @@ export default function TagsView({
                 >
                   Rename
                 </button>
-                <button
-                  type="button"
-                  className={styles.tagRetire}
-                  onClick={t.onRetire}
-                >
-                  Retire
-                </button>
+                {t.retired ? (
+                  <button
+                    type="button"
+                    className={styles.tagRename}
+                    onClick={t.onRestore}
+                  >
+                    Restore
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className={styles.tagRetire}
+                    onClick={t.onRetire}
+                  >
+                    Retire
+                  </button>
+                )}
+                {t.canDelete && (
+                  <button
+                    type="button"
+                    className={styles.tagRetire}
+                    onClick={t.onDelete}
+                  >
+                    Delete
+                  </button>
+                )}
               </>
             )}
           </div>

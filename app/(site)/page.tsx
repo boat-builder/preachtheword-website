@@ -2,7 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import {
   THEMES,
-  NEED_TAGS,
+  HOME_TAGS,
   featuredSermon,
   latestSermons,
   formatDate,
@@ -73,7 +73,7 @@ export default function HomePage() {
       <section className={`container ${styles.tagsSection}`}>
         <h2 className={styles.tagsHeading}>Looking for a word on…</h2>
         <div className={styles.tags}>
-          {NEED_TAGS.map((tag) => (
+          {HOME_TAGS.map((tag) => (
             <Link
               key={tag}
               href={`/sermons?tag=${encodeURIComponent(tag)}`}

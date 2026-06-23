@@ -11,6 +11,7 @@ export interface ThemeOption {
 }
 
 export interface TagOption {
+  id: string;
   name: string;
   selected: boolean;
   onToggle: () => void;
@@ -24,6 +25,10 @@ interface SermonFormProps {
   saveLabel: string;
   fetchKind: '' | 'ok' | 'err';
   fetchMsg: string;
+  /** Disable the save button + show progress while a server action runs. */
+  busy?: boolean;
+  /** A deploy is in progress — saving is paused until it finishes. */
+  releasing?: boolean;
   themeOptions: ThemeOption[];
   tagOptions: TagOption[];
   selectedCount: number;
@@ -42,6 +47,8 @@ export default function SermonForm({
   saveLabel,
   fetchKind,
   fetchMsg,
+  busy = false,
+  releasing = false,
   themeOptions,
   tagOptions,
   selectedCount,
@@ -246,7 +253,7 @@ export default function SermonForm({
         <div className={styles.tagPicker}>
           {tagOptions.map((t) => (
             <button
-              key={t.name}
+              key={t.id}
               type="button"
               onClick={t.onToggle}
               className={`${styles.tagOpt}${
@@ -269,7 +276,7 @@ export default function SermonForm({
           Suggested from the title. You can adjust it.
         </p>
         <div className={styles.slugRow}>
-          <span className={styles.slugPrefix}>preachtheword.faith/sermon/</span>
+          <span className={styles.slugPrefix}>preachtheword.faith/sermons/</span>
           <input
             value={form.slug}
             onChange={(e) => onField('slug', e.target.value)}
@@ -310,8 +317,13 @@ export default function SermonForm({
       </section>
 
       <div className={styles.formActions}>
-        <button type="button" className={styles.saveBtn} onClick={onSave}>
-          {saveLabel}
+        <button
+          type="button"
+          className={styles.saveBtn}
+          onClick={onSave}
+          disabled={busy || releasing}
+        >
+          {busy ? 'Saving…' : releasing ? 'Releasing…' : saveLabel}
         </button>
         <button type="button" className={styles.cancelBtn} onClick={onCancel}>
           Cancel

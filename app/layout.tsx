@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Newsreader, Public_Sans } from 'next/font/google';
+import { ClerkProvider } from '@clerk/nextjs';
 import { SITE } from '@/lib/site';
 import ToastProvider from '@/components/ToastProvider';
 import './globals.css';
@@ -62,14 +63,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html
-      lang="en"
-      data-scroll-behavior="smooth"
-      className={`${publicSans.variable} ${newsreader.variable}`}
-    >
-      <body>
-        <ToastProvider>{children}</ToastProvider>
-      </body>
-    </html>
+    // ClerkProvider supplies auth context to the /admin panel. It is compatible
+    // with static rendering — public pages stay statically generated because they
+    // never call Clerk's auth()/currentUser(). Header/Footer + JSON-LD live in the
+    // (site) route group's layout; admin gets its own full-screen chrome.
+    <ClerkProvider>
+      <html
+        lang="en"
+        data-scroll-behavior="smooth"
+        className={`${publicSans.variable} ${newsreader.variable}`}
+      >
+        <body>
+          <ToastProvider>{children}</ToastProvider>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }
