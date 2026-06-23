@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import type { AdminView } from './types';
 import { LibraryIcon, TagsIcon, PlusIcon } from './icons';
 import styles from './admin.module.css';
@@ -27,9 +28,13 @@ export default function Sidebar({
   return (
     <aside className={styles.sidebar}>
       <div className={styles.sideHead}>
-        <div className={styles.sideMark}>
-          <span className={styles.markRing} />
-        </div>
+        <Image
+          src="/logo.png"
+          alt=""
+          width={36}
+          height={36}
+          className={styles.sideMark}
+        />
         <div>
           <div className={styles.sideBrandName}>Preach the Word</div>
           <div className={styles.sideBrandSub}>Content admin</div>

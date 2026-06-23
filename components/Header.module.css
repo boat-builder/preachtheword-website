@@ -32,9 +32,8 @@
   height: 38px;
   border-radius: 9px;
   background: var(--navy);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  object-fit: cover;
+  display: block;
   flex: none;
 }
 

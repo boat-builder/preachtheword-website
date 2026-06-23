@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { SITE } from '@/lib/site';
 import { CollectionShareButton } from './ShareControls';
 import SearchBox from './SearchBox';
@@ -10,9 +11,14 @@ export default function Header() {
     <header className={styles.header}>
       <div className={styles.bar}>
         <Link href="/" className={styles.brand} aria-label={`${SITE.name} — home`}>
-          <span className={styles.mark}>
-            <span className={styles.markRing} />
-          </span>
+          <Image
+            src="/logo.png"
+            alt=""
+            width={38}
+            height={38}
+            className={styles.mark}
+            priority
+          />
           <span className={styles.brandText}>
             <span className={styles.brandName}>{SITE.name}</span>
             <span className={styles.brandRef}>{SITE.reference}</span>
