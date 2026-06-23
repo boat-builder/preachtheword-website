@@ -10,6 +10,25 @@ endpoint**.
 > mount Clerk's `<SignIn />` (already done at `/admin/sign-in`). Jump to
 > [§4 Integration contract](#4-integration-contract-for-the-ui).
 
+## ✅ Integration status — DONE
+
+The frontend admin UI (merged from PR #1) is now wired to this backend:
+
+- **`app/admin/page.tsx`** is a server component: it gates on `getOperator()` (redirect to
+  `/admin/sign-in`) and loads live content via `getAdminContent()`, passing `initialContent` +
+  `operator` into the client `AdminApp`.
+- **`components/admin/AdminApp.tsx`** calls the server actions for every mutation, re-syncs via
+  `getContent()` after each, and warns if a re-sync fails. The fake `SignIn.tsx` was deleted;
+  sign-out + identity come from Clerk. Tags are keyed by **id** (labels shown); the form picker
+  hides retired tags. YouTube prefill hits `/api/admin/youtube`.
+- **Behaviors to know:** editing a sermon preserves its `featured` flag (the form has no featured
+  control — `featured` is tri-state, omitted on edit); **the last remaining sermon cannot be
+  deleted** (the site needs ≥1 for the home hero); deleting the featured sermon prompts for a
+  replacement (newest pre-selected); Manage-tags offers **Retire** (soft, any usage) + **Restore**
+  + **Delete** (unused only).
+- **Still required before `/admin` works:** set the env vars in §2 (`GITHUB_TOKEN`, Clerk keys).
+  Without them the public site builds fine, but `/admin` will error at runtime.
+
 ---
 
 ## 1. Architecture
@@ -203,11 +222,13 @@ Call this on paste in the create/edit form. Auth-gated (operator session require
 }
 ```
 
-### 4d. Auth wiring (your admin layout)
+### 4d. Auth wiring (already implemented)
 
-`<ClerkProvider>` is already in the root layout, and `/admin/sign-in` already mounts Clerk's
-`<SignIn />` — **do not build a custom login page.** In your `app/admin/layout.tsx`, gate the
-section server-side and add a sign-out control:
+`<ClerkProvider>` is in the root layout, `/admin/sign-in` mounts Clerk's `<SignIn />`, and the
+gate lives in `app/admin/page.tsx` (server component): it calls `getOperator()` and redirects to
+`/admin/sign-in` when there's no authorized operator, then passes the operator down to `AdminApp`,
+which uses Clerk's `useClerk().signOut()` for the Sidebar's Sign out. Reference pattern (for any
+future admin route you add):
 
 ```tsx
 import { redirect } from 'next/navigation';
