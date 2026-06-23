@@ -19,7 +19,12 @@ import {
   deleteTag as applyDeleteTag,
   ContentError,
 } from './content';
-import { commitContentMutation, GithubApiError, type CommitAuthor } from './github';
+import {
+  commitContentMutation,
+  getContentFile,
+  GithubApiError,
+  type CommitAuthor,
+} from './github';
 import { getOperator, type Operator } from './auth';
 import { notifySlack } from './slack';
 import {
@@ -28,7 +33,7 @@ import {
   fieldErrorsFromZod,
   type SermonInput,
 } from './validation';
-import type { ActionResult } from './types';
+import type { ActionResult, ContentFile } from './types';
 
 function now(): string {
   return new Date().toISOString();
@@ -60,6 +65,30 @@ async function withOperator<T>(
 }
 
 const authorOf = (op: Operator): CommitAuthor => ({ name: op.name, email: op.email });
+
+// ---------------------------------------------------------------------------
+// Read (for the admin UI to refresh after a mutation)
+// ---------------------------------------------------------------------------
+
+/**
+ * Live content store for the client controller to re-sync after each write.
+ * (The initial load is done server-side in app/admin/page.tsx via getAdminContent;
+ * this is the client-callable refresh.)
+ */
+export async function getContent(): Promise<ActionResult<ContentFile>> {
+  const operator = await getOperator();
+  if (!operator) {
+    return { ok: false, error: 'You are not signed in as an authorized operator.' };
+  }
+  try {
+    const { content } = await getContentFile();
+    return { ok: true, data: content };
+  } catch (err) {
+    if (err instanceof GithubApiError) return { ok: false, error: err.message };
+    console.error('[admin action] getContent failed:', err);
+    return { ok: false, error: err instanceof Error ? err.message : 'Failed to load content.' };
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Sermons

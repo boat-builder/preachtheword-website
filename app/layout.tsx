@@ -1,9 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Newsreader, Public_Sans } from 'next/font/google';
 import { ClerkProvider } from '@clerk/nextjs';
-import { SITE, absoluteUrl } from '@/lib/site';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
+import { SITE } from '@/lib/site';
 import ToastProvider from '@/components/ToastProvider';
 import './globals.css';
 
@@ -64,35 +62,11 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const websiteJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'WebSite',
-    name: SITE.name,
-    url: SITE.url,
-    description: SITE.description,
-    potentialAction: {
-      '@type': 'SearchAction',
-      target: {
-        '@type': 'EntryPoint',
-        urlTemplate: absoluteUrl('/sermons?q={search_term_string}'),
-      },
-      'query-input': 'required name=search_term_string',
-    },
-  };
-
-  const orgJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'Organization',
-    name: SITE.name,
-    url: SITE.url,
-    email: SITE.email,
-    slogan: SITE.verse,
-  };
-
   return (
     // ClerkProvider supplies auth context to the /admin panel. It is compatible
     // with static rendering — public pages stay statically generated because they
-    // never call Clerk's auth()/currentUser().
+    // never call Clerk's auth()/currentUser(). Header/Footer + JSON-LD live in the
+    // (site) route group's layout; admin gets its own full-screen chrome.
     <ClerkProvider>
       <html
         lang="en"
@@ -100,19 +74,7 @@ export default function RootLayout({
         className={`${publicSans.variable} ${newsreader.variable}`}
       >
         <body>
-          <script
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
-          />
-          <script
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
-          />
-          <ToastProvider>
-            <Header />
-            {children}
-            <Footer />
-          </ToastProvider>
+          <ToastProvider>{children}</ToastProvider>
         </body>
       </html>
     </ClerkProvider>
