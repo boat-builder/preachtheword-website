@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Newsreader, Public_Sans } from 'next/font/google';
 import { ClerkProvider } from '@clerk/nextjs';
-import { Analytics } from '@vercel/analytics/next';
 import { SITE } from '@/lib/site';
 import ToastProvider from '@/components/ToastProvider';
 import './globals.css';
@@ -76,7 +75,6 @@ export default function RootLayout({
       >
         <body>
           <ToastProvider>{children}</ToastProvider>
-          <Analytics />
         </body>
       </html>
     </ClerkProvider>
