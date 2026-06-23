@@ -1,3 +1,4 @@
+import { Analytics } from '@vercel/analytics/next';
 import { SITE, absoluteUrl } from '@/lib/site';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -45,6 +46,7 @@ export default function SiteLayout({
       <Header />
       {children}
       <Footer />
+      <Analytics />
     </>
   );
 }
