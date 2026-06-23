@@ -50,7 +50,6 @@ CLERK_SECRET_KEY=sk_…
 NEXT_PUBLIC_CLERK_SIGN_IN_URL=/admin/sign-in
 NEXT_PUBLIC_CLERK_SIGN_UP_URL=/admin/sign-in
 NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/admin
-NEXT_PUBLIC_SITE_URL=https://preachtheword.faith
 ```
 
 **Recommended (defense-in-depth — only these emails may use the admin even with a session):**
@@ -59,9 +58,11 @@ NEXT_PUBLIC_SITE_URL=https://preachtheword.faith
 ADMIN_ALLOWED_EMAILS=operator1@example.com,operator2@example.com
 ```
 
-**Optional, can be left blank for now:** `GITHUB_REPO_OWNER`, `GITHUB_REPO_NAME`,
-`GITHUB_CONTENT_BRANCH`, `GITHUB_CONTENT_PATH` (sensible defaults are baked in),
-`SLACK_WEBHOOK_URL`, `YOUTUBE_API_KEY` (later).
+**Optional, can be left blank for now:** `SLACK_WEBHOOK_URL`, `YOUTUBE_API_KEY` (later).
+
+> The canonical site URL (`https://www.preachtheword.faith`) and the GitHub repo
+> coordinates are **hardcoded** in the app — they aren't env vars, so there's nothing
+> to set for them.
 
 ## 4. Confirm Vercel ↔ GitHub
 

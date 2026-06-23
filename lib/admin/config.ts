@@ -12,6 +12,15 @@ export interface GithubConfig {
   path: string;
 }
 
+// Fixed repo coordinates — not configurable (this app only ever writes to its own
+// content file on the production branch). Only the token is a secret read from env.
+const GITHUB_REPO = {
+  owner: 'boat-builder',
+  repo: 'preachtheword-website',
+  branch: 'main',
+  path: 'data/content.json',
+} as const;
+
 function required(name: string): string {
   const value = process.env[name];
   if (!value) {
@@ -25,13 +34,7 @@ function required(name: string): string {
 
 /** GitHub repo coordinates + token used to commit data/content.json. */
 export function githubConfig(): GithubConfig {
-  return {
-    token: required('GITHUB_TOKEN'),
-    owner: process.env.GITHUB_REPO_OWNER || 'boat-builder',
-    repo: process.env.GITHUB_REPO_NAME || 'preachtheword-website',
-    branch: process.env.GITHUB_CONTENT_BRANCH || 'main',
-    path: process.env.GITHUB_CONTENT_PATH || 'data/content.json',
-  };
+  return { token: required('GITHUB_TOKEN'), ...GITHUB_REPO };
 }
 
 /** Optional Slack incoming-webhook URL for post-save notifications. */

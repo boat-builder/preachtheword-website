@@ -1,7 +1,7 @@
 export const SITE = {
   name: 'Preach the Word',
-  /** Canonical production origin. Override with NEXT_PUBLIC_SITE_URL. */
-  url: process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || 'https://preachtheword.faith',
+  /** Canonical production origin (fixed — drives canonical URLs, sitemap, OG, JSON-LD). */
+  url: 'https://www.preachtheword.faith',
   reference: '2 Timothy 4:2',
   verse: 'Preach the word; be ready in season and out of season.',
   tagline: 'A growing library of messages to discover a word for your need, grow in faith, and share with those you love.',
