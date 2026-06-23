@@ -22,6 +22,8 @@ import {
 import {
   commitContentMutation,
   getContentFile,
+  getLatestCommit,
+  getDeploymentState,
   GithubApiError,
   type CommitAuthor,
 } from './github';
@@ -33,7 +35,7 @@ import {
   fieldErrorsFromZod,
   type SermonInput,
 } from './validation';
-import type { ActionResult, ContentFile } from './types';
+import type { ActionResult, ContentFile, ReleaseStatus } from './types';
 
 function now(): string {
   return new Date().toISOString();
@@ -87,6 +89,59 @@ export async function getContent(): Promise<ActionResult<ContentFile>> {
     if (err instanceof GithubApiError) return { ok: false, error: err.message };
     console.error('[admin action] getContent failed:', err);
     return { ok: false, error: err instanceof Error ? err.message : 'Failed to load content.' };
+  }
+}
+
+// A deploy that hasn't reported a GitHub status yet is treated as "building" for
+// this long after the commit (fallback when Deployments: Read isn't granted, or
+// before Vercel posts the first status).
+const BUILD_WINDOW_MS = 3 * 60 * 1000;
+
+/**
+ * Live release status, polled by the admin so an operator doesn't pile up commits
+ * (each commit = one production rebuild). Prefers the real GitHub Deployment status
+ * (Vercel posts it); falls back to a time window since the latest commit when that
+ * signal isn't available. Fail-open: errors return 'unknown' so a transient GitHub
+ * hiccup never permanently blocks the admin.
+ */
+export async function getReleaseStatus(): Promise<ActionResult<ReleaseStatus>> {
+  const operator = await getOperator();
+  if (!operator) {
+    return { ok: false, error: 'You are not signed in as an authorized operator.' };
+  }
+  try {
+    const commit = await getLatestCommit();
+    const deployment = await getDeploymentState(commit.sha);
+
+    let state: ReleaseStatus['state'];
+    if (deployment === 'success') state = 'live';
+    else if (deployment === 'failure') state = 'error';
+    else if (deployment === 'in_progress' || deployment === 'queued') state = 'building';
+    else {
+      // No deployment signal — assume a build is in flight for a short window
+      // after the commit landed, then consider it live.
+      const age = commit.committedAt
+        ? Date.now() - new Date(commit.committedAt).getTime()
+        : Number.POSITIVE_INFINITY;
+      state = age >= 0 && age < BUILD_WINDOW_MS ? 'building' : 'live';
+    }
+
+    return {
+      ok: true,
+      data: {
+        state,
+        sha: commit.sha,
+        commitUrl: commit.url,
+        committedAt: commit.committedAt,
+      },
+    };
+  } catch (err) {
+    if (err instanceof GithubApiError) return { ok: false, error: err.message };
+    console.error('[admin action] getReleaseStatus failed:', err);
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : 'Failed to check release status.',
+    };
   }
 }
 

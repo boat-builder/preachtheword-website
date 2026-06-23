@@ -61,6 +61,18 @@ export interface ContentFile {
   redirects: Redirect[];
 }
 
+/** Live release/deployment status, surfaced in the admin so saves don't pile up. */
+export interface ReleaseStatus {
+  /** building = a deploy is queued/running; error = last deploy failed; live = up to date. */
+  state: 'live' | 'building' | 'error' | 'unknown';
+  /** Latest commit sha on the content branch. */
+  sha: string;
+  /** GitHub URL of that commit. */
+  commitUrl: string;
+  /** ISO timestamp the latest commit landed. */
+  committedAt: string;
+}
+
 /** Result envelope returned by every admin server action. */
 export type ActionResult<T = undefined> =
   | { ok: true; data: T }

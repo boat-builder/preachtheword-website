@@ -144,6 +144,88 @@ export async function commitContentMutation<R extends { content: ContentFile }>(
   );
 }
 
+export interface LatestCommit {
+  sha: string;
+  /** ISO timestamp the commit landed (committer date). */
+  committedAt: string;
+  url: string;
+}
+
+/** The latest commit on the content branch (for release-status detection). */
+export async function getLatestCommit(): Promise<LatestCommit> {
+  const { token, owner, repo, branch } = githubConfig();
+  const res = await fetch(
+    `${API}/repos/${owner}/${repo}/commits/${encodeURIComponent(branch)}`,
+    { headers: headers(token), cache: 'no-store' },
+  );
+  if (!res.ok) {
+    throw new GithubApiError(
+      `GitHub commit read failed (${res.status}): ${await safeText(res)}`,
+      res.status,
+    );
+  }
+  const data = (await res.json()) as {
+    sha: string;
+    html_url: string;
+    commit?: { committer?: { date?: string }; author?: { date?: string } };
+  };
+  return {
+    sha: data.sha,
+    committedAt: data.commit?.committer?.date ?? data.commit?.author?.date ?? '',
+    url: data.html_url,
+  };
+}
+
+export type DeploymentState =
+  | 'queued'
+  | 'in_progress'
+  | 'success'
+  | 'failure'
+  | 'unknown';
+
+/**
+ * The latest GitHub Deployment status for a commit, as posted by Vercel's GitHub
+ * integration. Returns null if there's no deployment yet, or if the token can't
+ * read deployments — callers should fall back to a time heuristic in that case.
+ * Requires the PAT to have "Deployments: Read" for the precise signal.
+ */
+export async function getDeploymentState(sha: string): Promise<DeploymentState | null> {
+  const { token, owner, repo } = githubConfig();
+  try {
+    const depRes = await fetch(
+      `${API}/repos/${owner}/${repo}/deployments?sha=${encodeURIComponent(sha)}&per_page=1`,
+      { headers: headers(token), cache: 'no-store' },
+    );
+    if (!depRes.ok) return null;
+    const deployments = (await depRes.json()) as Array<{ id: number }>;
+    if (!Array.isArray(deployments) || deployments.length === 0) return null;
+
+    const statusRes = await fetch(
+      `${API}/repos/${owner}/${repo}/deployments/${deployments[0].id}/statuses?per_page=1`,
+      { headers: headers(token), cache: 'no-store' },
+    );
+    if (!statusRes.ok) return null;
+    const statuses = (await statusRes.json()) as Array<{ state: string }>;
+    const state = Array.isArray(statuses) ? statuses[0]?.state : undefined;
+    switch (state) {
+      case 'success':
+        return 'success';
+      case 'failure':
+      case 'error':
+        return 'failure';
+      case 'in_progress':
+        return 'in_progress';
+      case 'queued':
+      case 'pending':
+        return 'queued';
+      default:
+        return 'unknown';
+    }
+  } catch {
+    return null;
+  }
+}
+
 async function safeText(res: Response): Promise<string> {
   try {
     return (await res.text()).slice(0, 300);

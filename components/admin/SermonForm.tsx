@@ -27,6 +27,8 @@ interface SermonFormProps {
   fetchMsg: string;
   /** Disable the save button + show progress while a server action runs. */
   busy?: boolean;
+  /** A deploy is in progress — saving is paused until it finishes. */
+  releasing?: boolean;
   themeOptions: ThemeOption[];
   tagOptions: TagOption[];
   selectedCount: number;
@@ -46,6 +48,7 @@ export default function SermonForm({
   fetchKind,
   fetchMsg,
   busy = false,
+  releasing = false,
   themeOptions,
   tagOptions,
   selectedCount,
@@ -318,9 +321,9 @@ export default function SermonForm({
           type="button"
           className={styles.saveBtn}
           onClick={onSave}
-          disabled={busy}
+          disabled={busy || releasing}
         >
-          {busy ? 'Saving…' : saveLabel}
+          {busy ? 'Saving…' : releasing ? 'Releasing…' : saveLabel}
         </button>
         <button type="button" className={styles.cancelBtn} onClick={onCancel}>
           Cancel

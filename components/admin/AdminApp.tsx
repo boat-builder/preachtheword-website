@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useClerk } from '@clerk/nextjs';
 import { THEMES, formatAdminDate, todayIso, type ThemeKey } from '@/lib/admin';
 // Use the canonical slugifier the server uses, so client preview/validation and
 // the stored slug always agree (transliterates accents, drops apostrophes).
 import { slugify } from '@/lib/admin/slugify';
 import { themeName, thumbUrl, watchUrl } from '@/lib/sermons';
-import type { ContentFile, SermonRecord } from '@/lib/admin/types';
+import type { ContentFile, SermonRecord, ReleaseStatus } from '@/lib/admin/types';
 import type { SermonInput } from '@/lib/admin/validation';
 import {
   createSermon,
@@ -19,6 +19,7 @@ import {
   setTagRetired,
   deleteTag,
   getContent,
+  getReleaseStatus,
 } from '@/lib/admin/actions';
 import type { AdminView, FormErrors, FormState, ModalState } from './types';
 import Sidebar from './Sidebar';
@@ -77,9 +78,12 @@ export default function AdminApp({ initialContent, operator }: AdminAppProps) {
   const [modalError, setModalError] = useState('');
   const [toast, setToast] = useState<string | null>(null);
   const [toastSeq, setToastSeq] = useState(0);
-  const [publishing, setPublishing] = useState<string | null>(null);
-  const [pubSeq, setPubSeq] = useState(0);
   const [busy, setBusy] = useState(false);
+
+  // Live release status (polled). While a deploy is building we pause mutations so
+  // an operator can't stack up several rebuilds from rapid saves.
+  const [release, setRelease] = useState<ReleaseStatus | null>(null);
+  const isReleasing = release?.state === 'building';
 
   // Delete-featured flow: which sermon is being deleted, and the chosen replacement
   // hero. Kept as state (not a closure-captured value) so the confirm handler always
@@ -93,11 +97,22 @@ export default function AdminApp({ initialContent, operator }: AdminAppProps) {
     return () => clearTimeout(id);
   }, [toast, toastSeq]);
 
+  // Poll release status: on mount and every 15s. Fail-open — a failed check
+  // leaves the previous status, so a GitHub hiccup never permanently blocks edits.
+  const checkRelease = useCallback(async () => {
+    const res = await getReleaseStatus();
+    if (res.ok) setRelease(res.data);
+  }, []);
+
   useEffect(() => {
-    if (!publishing) return;
-    const id = setTimeout(() => setPublishing(null), 9000);
-    return () => clearTimeout(id);
-  }, [publishing, pubSeq]);
+    // Initial check via a timer callback (not a synchronous effect-body setState).
+    const first = setTimeout(() => void checkRelease(), 0);
+    const id = setInterval(() => void checkRelease(), 15000);
+    return () => {
+      clearTimeout(first);
+      clearInterval(id);
+    };
+  }, [checkRelease]);
 
   // -------------------------------------------------------------------------
   // Helpers
@@ -109,9 +124,15 @@ export default function AdminApp({ initialContent, operator }: AdminAppProps) {
     setToast(m);
     setToastSeq((n) => n + 1);
   };
-  const publish = (m: string) => {
-    setPublishing(m);
-    setPubSeq((n) => n + 1);
+  /** Block a mutation while a release is building; returns true if blocked. */
+  const guardRelease = (): boolean => {
+    if (isReleasing) {
+      toastMsg(
+        'A release is already in progress — your last change is going live. Please wait a moment.',
+      );
+      return true;
+    }
+    return false;
   };
   const openModal = (m: ModalState) => {
     setModalError('');
@@ -368,7 +389,7 @@ export default function AdminApp({ initialContent, operator }: AdminAppProps) {
   });
 
   const commitSave = async () => {
-    if (!form) return;
+    if (!form || guardRelease()) return;
     const f = form;
     const input = buildInput(f);
 
@@ -382,9 +403,7 @@ export default function AdminApp({ initialContent, operator }: AdminAppProps) {
         }
         const synced = await refresh();
         setView('library');
-        publish(
-          `“${f.title.trim()}” is publishing — it’ll appear on the site in a minute or two.`,
-        );
+        void checkRelease(); // the commit kicked off a build — reflect it promptly
         toastMsg(synced ? 'Sermon added' : 'Saved — reload to see the updated list.');
       } else {
         const res = await updateSermon(f.id as string, input);
@@ -395,19 +414,21 @@ export default function AdminApp({ initialContent, operator }: AdminAppProps) {
         }
         const synced = await refresh();
         setView('library');
+        void checkRelease();
         const slugNote = res.data.slugChanged
           ? ' The old web address now redirects to the new one.'
           : '';
-        publish(
-          `Your changes to “${f.title.trim()}” are publishing — live on the site in a minute or two.${slugNote}`,
+        toastMsg(
+          synced
+            ? `Changes saved.${slugNote}`
+            : `Saved — reload to see the latest.${slugNote}`,
         );
-        toastMsg(synced ? 'Changes saved' : 'Saved — reload to see the latest.');
       }
     });
   };
 
   const trySave = () => {
-    if (!form) return;
+    if (!form || guardRelease()) return;
     const e = validate(form);
     if (Object.keys(e).length) {
       setErrors(e);
@@ -437,7 +458,7 @@ export default function AdminApp({ initialContent, operator }: AdminAppProps) {
   // -------------------------------------------------------------------------
   const askFeature = (id: string) => {
     const s = sermons.find((x) => x.id === id);
-    if (!s || s.featured) return;
+    if (!s || s.featured || guardRelease()) return;
     const cur = sermons.find((x) => x.featured);
     openModal({
       kind: 'warn',
@@ -457,9 +478,7 @@ export default function AdminApp({ initialContent, operator }: AdminAppProps) {
             return;
           }
           const synced = await refresh();
-          publish(
-            `“${s.title}” is now the featured sermon — updating on the site shortly.`,
-          );
+          void checkRelease();
           toastMsg(
             synced ? 'Featured sermon updated' : 'Saved — reload to see the latest.',
           );
@@ -477,7 +496,7 @@ export default function AdminApp({ initialContent, operator }: AdminAppProps) {
       }
       closeModal();
       const synced = await refresh();
-      publish(`“${title}” is being removed from the site.`);
+      void checkRelease();
       toastMsg(synced ? 'Sermon removed' : 'Removed — reload to see the latest.');
     });
 
@@ -501,13 +520,13 @@ export default function AdminApp({ initialContent, operator }: AdminAppProps) {
       closeModal();
       setDeleteTargetId(null);
       const synced = await refresh();
-      publish(`“${target?.title ?? 'The sermon'}” is being removed from the site.`);
+      void checkRelease();
       toastMsg(synced ? 'Sermon removed' : 'Removed — reload to see the latest.');
     });
 
   const askDelete = (id: string) => {
     const s = sermons.find((x) => x.id === id);
-    if (!s) return;
+    if (!s || guardRelease()) return;
     const others = sermons.filter((x) => x.id !== id);
 
     // The site needs at least one sermon (home hero) — block the last delete.
@@ -558,7 +577,7 @@ export default function AdminApp({ initialContent, operator }: AdminAppProps) {
 
   const addTag = async () => {
     const n = newTag.trim();
-    if (!n) return;
+    if (!n || guardRelease()) return;
     await exclusive(async () => {
       const res = await createTag(n);
       if (!res.ok) {
@@ -589,6 +608,7 @@ export default function AdminApp({ initialContent, operator }: AdminAppProps) {
       cancelTagEdit();
       return;
     }
+    if (guardRelease()) return;
     await exclusive(async () => {
       const res = await renameTag(id, nn);
       if (!res.ok) {
@@ -618,6 +638,7 @@ export default function AdminApp({ initialContent, operator }: AdminAppProps) {
     });
 
   const askRetireTag = (id: string) => {
+    if (guardRelease()) return;
     const label = tagLabel.get(id) ?? '';
     const n = tagUsage(id);
     openModal({
@@ -634,10 +655,12 @@ export default function AdminApp({ initialContent, operator }: AdminAppProps) {
   };
 
   const restoreTag = (id: string) => {
+    if (guardRelease()) return;
     void doRetire(id, false)();
   };
 
   const askDeleteTag = (id: string) => {
+    if (guardRelease()) return;
     const label = tagLabel.get(id) ?? '';
     openModal({
       kind: 'danger',
@@ -794,18 +817,23 @@ export default function AdminApp({ initialContent, operator }: AdminAppProps) {
         />
 
         <main className={styles.main}>
-          {publishing && (
+          {release && (release.state === 'building' || release.state === 'error') && (
             <div className={styles.banner}>
-              <span key={pubSeq} className={styles.bannerBar} />
+              {release.state === 'building' && <span className={styles.bannerBar} />}
               <span className={styles.bannerDot} />
-              <span className={styles.bannerText}>{publishing}</span>
-              <button
-                type="button"
+              <span className={styles.bannerText}>
+                {release.state === 'building'
+                  ? 'Releasing your latest change — it’ll be live in a minute or two. New edits are paused until this finishes.'
+                  : 'The last release didn’t finish. Check the deployment, then try saving again.'}
+              </span>
+              <a
                 className={styles.bannerDismiss}
-                onClick={() => setPublishing(null)}
+                href={release.commitUrl}
+                target="_blank"
+                rel="noreferrer"
               >
-                Dismiss
-              </button>
+                View commit
+              </a>
             </div>
           )}
 
@@ -833,6 +861,7 @@ export default function AdminApp({ initialContent, operator }: AdminAppProps) {
               fetchKind={fetchKind}
               fetchMsg={fetchMsg}
               busy={busy}
+              releasing={isReleasing}
               themeOptions={themeOptions}
               tagOptions={tagOptions}
               selectedCount={form.tags.length}
@@ -924,7 +953,7 @@ export default function AdminApp({ initialContent, operator }: AdminAppProps) {
                 className={`${styles.modalConfirm}${
                   isDanger ? ` ${styles.modalConfirmDanger}` : ''
                 }`}
-                disabled={busy}
+                disabled={busy || (isReleasing && !modal.single)}
                 onClick={() => {
                   if (modal.replacementOptions) void confirmFeaturedDelete();
                   else if (modal.onConfirm) modal.onConfirm();
