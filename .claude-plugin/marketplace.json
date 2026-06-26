@@ -1,0 +1,13 @@
+{
+  "name": "preachtheword",
+  "owner": {
+    "name": "Preach the Word"
+  },
+  "plugins": [
+    {
+      "name": "sermon-ingest",
+      "source": "./tools/sermon-ingest",
+      "description": "Convert raw sermon transcripts into publish-ready records in the Preach the Word content store (data/content.json), with a verification sub-agent and a safe Python merge step."
+    }
+  ]
+}
