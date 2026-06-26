@@ -179,22 +179,11 @@ non-zero, nothing was written and nothing was deleted; fix the
 reported issue and rerun. (Pass `--keep-staged` if you want to keep the staged
 file for debugging.)
 
-**Read the script's full output — do not pipe it through `grep`, `head`, or
-`tail`.** You must actually see `OK: deleted source transcript`. The script
-hard-fails (non-zero exit) if `--source` points at a path that doesn't exist, so
-double-check that you pass the real transcript path. Pass `--source` exactly once,
-on the real (non–`--dry-run`) run.
+### 9. Report
 
-### 9. Verify the deletion, then report
-
-Before reporting success, **list `tools/transcribe/transcripts/*.txt` and confirm
-the source file is actually gone.** Do not claim the transcript was deleted based
-on the script exiting `0` alone — verify it by listing the directory (the same
-"verify, don't assume" discipline as the step-7 sub-agent gate).
-
-Then tell the user which sermon was added (id, slug, title), how many new tags
-were created, and that the source transcript is **confirmed gone** (verified by
-listing the directory).
+List `tools/transcribe/transcripts/*.txt` to confirm the source file is gone, then
+tell the user the sermon added (id, slug, title), any new tags, and that the
+transcript is deleted.
 
 ## Notes
 
