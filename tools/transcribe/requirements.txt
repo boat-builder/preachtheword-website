@@ -1,0 +1,4 @@
+# Local YouTube -> transcript pipeline (Apple Silicon / MLX).
+# ffmpeg must also be installed on the system:  brew install ffmpeg
+mlx-whisper>=0.4.0
+yt-dlp>=2024.0.0

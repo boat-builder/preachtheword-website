@@ -1,0 +1,9 @@
+# Transcription outputs and scratch — don't commit these.
+transcripts/
+.work/
+*.wav
+*.mp3
+*.m4a
+*.webm
+__pycache__/
+.venv/
