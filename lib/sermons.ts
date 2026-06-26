@@ -40,8 +40,6 @@ export interface Sermon {
   long: string[];
   /** Optional video length in whole seconds (from YouTube). Omitted ⇒ not shown. */
   durationSeconds?: number;
-  /** Optional; omitted/empty ⇒ no transcript section and absent from JSON-LD. */
-  transcript?: string;
   /** ISO timestamp set on every admin write; feeds sitemap freshness. */
   updatedAt?: string;
 }

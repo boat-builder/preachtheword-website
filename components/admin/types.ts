@@ -17,7 +17,6 @@ export interface FormState {
   /** Human "mm:ss" / "h:mm:ss" text; parsed to durationSeconds on save. */
   duration: string;
   slug: string;
-  transcript: string;
 }
 
 export type FormErrorKey =

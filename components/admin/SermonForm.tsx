@@ -310,25 +310,6 @@ export default function SermonForm({
         )}
       </section>
 
-      {/* 7. TRANSCRIPT */}
-      <section className={styles.card}>
-        <div className={`${styles.cardHead} ${styles.cardHeadTight}`}>
-          <span className={`${styles.stepNum} ${styles.stepNumMuted}`}>7</span>
-          <h2 className={styles.cardTitle}>Transcript</h2>
-          <span className={styles.optionalPill}>Optional</span>
-        </div>
-        <p className={styles.cardDesc}>
-          The full transcript of the talk, if you have it.
-        </p>
-        <textarea
-          value={form.transcript}
-          onChange={(e) => onField('transcript', e.target.value)}
-          rows={5}
-          placeholder="Paste the full transcript here (optional)…"
-          className={styles.field}
-        />
-      </section>
-
       <div className={styles.formActions}>
         <button
           type="button"

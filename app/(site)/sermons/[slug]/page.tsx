@@ -17,7 +17,6 @@ import {
 import { SITE, absoluteUrl } from '@/lib/site';
 import { SermonShareRow } from '@/components/ShareControls';
 import Duration from '@/components/Duration';
-import Transcript from '@/components/Transcript';
 import RelatedSermons from '@/components/RelatedSermons';
 import styles from './sermon.module.css';
 
@@ -93,8 +92,6 @@ export default async function SermonPage({
     about: themeName(sermon.category),
     // Length as ISO 8601, only when we have it (improves video rich results).
     ...(sermon.durationSeconds ? { duration: durationIso(sermon.durationSeconds) } : {}),
-    // Omit the transcript entirely when absent (D6 / spec §8).
-    ...(sermon.transcript ? { transcript: sermon.transcript } : {}),
     inLanguage: 'en',
   };
 
@@ -180,8 +177,6 @@ export default async function SermonPage({
             ))}
           </div>
         </div>
-
-        {sermon.transcript && <Transcript text={sermon.transcript} />}
       </div>
 
       {related.length > 0 && (
