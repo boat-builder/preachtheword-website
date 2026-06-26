@@ -30,8 +30,8 @@ Python script merges it in safely. Process exactly **one** transcript per run.
 ### 1. Pick one transcript
 
 List `tools/transcribe/transcripts/*.txt`. If there are none, stop and tell the
-user there's nothing to process. Otherwise pick one (alphabetically first is
-fine), and tell the user which file you're processing.
+user there's nothing to process. Otherwise pick one and tell the user which file
+you're processing.
 
 ### 2. Read the file and split it
 
@@ -63,9 +63,8 @@ paragraphs. This is the heart of the task.
 
 **Do:**
 - Convert conversational speech into smooth, *bookish* written English — full
-  sentences, real paragraphs, natural transitions. Match the tone of the existing
-  `long` entries in `data/content.json` (flowing and readable, not a word-for-word
-  transcript).
+  sentences, real paragraphs, natural transitions (flowing and readable, not a
+  word-for-word transcript).
 - **Fix transcription errors as you go — every file has its own.** Don't rely on
   a fixed list; instead, while reading, treat anything that doesn't parse as a
   real word/name/reference as a likely mis-hear and recover what was meant:
