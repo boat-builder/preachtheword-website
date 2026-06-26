@@ -294,9 +294,18 @@ def to_wav(src: Path, workdir: Path) -> Path:
 def transcribe(wav: Path, repo: str, args: argparse.Namespace) -> dict:
     import mlx_whisper
 
+    # mlx-whisper shows a tqdm progress bar (over the audio) only when
+    # verbose is exactly False; True streams each segment's text; None is silent.
+    if args.quiet:
+        verbose = None
+    elif args.verbose:
+        verbose = True
+    else:
+        verbose = False  # default: a live progress bar for long transcriptions
+
     decode_kwargs = dict(
         path_or_hf_repo=repo,
-        verbose=False if args.quiet else None,  # None => tqdm progress bar
+        verbose=verbose,
         word_timestamps=args.word_timestamps,
         # Temperature fallback: retry harder segments at higher temperatures.
         temperature=(0.0, 0.2, 0.4, 0.6, 0.8, 1.0),
@@ -575,7 +584,14 @@ def main() -> None:
         "--save-audio", action="store_true",
         help="Also keep the downloaded source audio next to the transcript.",
     )
-    parser.add_argument("--quiet", action="store_true", help="Less logging.")
+    parser.add_argument(
+        "-v", "--verbose", action="store_true",
+        help="Stream the transcript text live as it's decoded (instead of a bar).",
+    )
+    parser.add_argument(
+        "--quiet", action="store_true",
+        help="No transcription progress bar/text (keeps the step logging).",
+    )
     args = parser.parse_args()
 
     require_binary("ffmpeg", "Install with: brew install ffmpeg")
