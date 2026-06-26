@@ -270,12 +270,6 @@ def main() -> None:
     )
     args = ap.parse_args()
 
-    # Validate --source BEFORE anything is written. A wrong path must be a hard
-    # error, not a post-merge warning — otherwise the merge "succeeds" while the
-    # transcript silently survives, and the next run re-ingests it.
-    if args.source and not Path(args.source).is_file():
-        fail(f"--source given but not found: {args.source} (nothing was written, no file deleted)")
-
     staged_path = Path(args.staged)
     if not staged_path.is_file():
         fail(f"staged sermon file not found: {staged_path}")
