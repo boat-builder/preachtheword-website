@@ -55,6 +55,7 @@ import shutil
 import subprocess
 import sys
 import time
+from datetime import datetime
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
@@ -214,8 +215,31 @@ def fetch_title(url: str) -> str:
     return info.get("title") or info.get("id") or "transcript"
 
 
-def download_audio(url: str, workdir: Path) -> tuple[Path, str]:
-    """Download best audio from a URL with yt-dlp. Returns (audio_path, title)."""
+def build_meta(info: dict, source: str) -> dict:
+    """Curate the useful bits of yt-dlp's (huge) info dict for the header."""
+    def fmt_date(d):
+        if d and len(d) == 8 and d.isdigit():
+            return f"{d[:4]}-{d[4:6]}-{d[6:]}"
+        return d
+
+    return {
+        "title": info.get("title") or info.get("id") or "transcript",
+        "url": info.get("webpage_url") or info.get("original_url") or source,
+        "video_id": info.get("id"),
+        "channel": info.get("channel") or info.get("uploader"),
+        "channel_url": info.get("channel_url") or info.get("uploader_url"),
+        "upload_date": fmt_date(info.get("upload_date")),
+        "duration_seconds": info.get("duration"),
+        "view_count": info.get("view_count"),
+        "like_count": info.get("like_count"),
+        "categories": info.get("categories") or [],
+        "tags": info.get("tags") or [],
+        "description": (info.get("description") or "").strip(),
+    }
+
+
+def download_audio(url: str, workdir: Path) -> tuple[Path, dict]:
+    """Download best audio from a URL with yt-dlp. Returns (audio_path, meta)."""
     import yt_dlp
 
     _last_pct["v"] = -1  # reset throttle for this download (matters in a batch)
@@ -237,15 +261,14 @@ def download_audio(url: str, workdir: Path) -> tuple[Path, str]:
     except Exception as e:  # noqa: BLE001 - one bad URL shouldn't kill the batch
         raise TranscribeError(f"Download failed: {e}") from e
 
-    title = info.get("title") or info.get("id") or "transcript"
-    dur = info.get("duration")
-    if dur:
-        log(f"Source: {title!r}  ({fmt_duration(dur)})")
+    meta = build_meta(info, source=url)
+    if meta["duration_seconds"]:
+        log(f"Source: {meta['title']!r}  ({fmt_duration(meta['duration_seconds'])})")
 
     downloaded = sorted(workdir.glob("source.*"))
     if not downloaded:
         raise TranscribeError("yt-dlp finished but no audio file was produced.")
-    return downloaded[0], title
+    return downloaded[0], meta
 
 
 def to_wav(src: Path, workdir: Path) -> Path:
@@ -309,7 +332,72 @@ def output_paths(stem: Path, formats: list[str]) -> list[Path]:
     return [stem.with_suffix(f".{fmt}") for fmt in formats]
 
 
-def write_outputs(result: dict, stem: Path, formats: list[str]) -> list[Path]:
+SEP = "=" * 72  # metadata-block separator used at the top of .txt transcripts
+
+
+def _meta_rows(meta: dict) -> list[tuple[str, str]]:
+    """Ordered (label, value) pairs for the header; single-line values only."""
+    rows: list[tuple[str, str]] = []
+
+    def add(label: str, value) -> None:
+        if value:
+            rows.append((label, str(value)))
+
+    add("Title", meta.get("title"))
+    add("URL", meta.get("url"))
+    add("Source file", meta.get("source_file"))
+    channel = meta.get("channel")
+    if channel and meta.get("channel_url"):
+        channel = f"{channel}  ({meta['channel_url']})"
+    add("Channel", channel)
+    add("Uploaded", meta.get("upload_date"))
+    if meta.get("duration_seconds"):
+        add("Duration", fmt_duration(meta["duration_seconds"]))
+    add("Video ID", meta.get("video_id"))
+    if meta.get("view_count") is not None:
+        add("Views", f"{meta['view_count']:,}")
+    if meta.get("categories"):
+        add("Categories", ", ".join(meta["categories"]))
+    if meta.get("tags"):
+        tags = ", ".join(meta["tags"])
+        add("Tags", tags if len(tags) <= 300 else tags[:297] + "...")
+    add("Model", meta.get("model"))
+    add("Language", meta.get("language"))
+    add("Transcribed", meta.get("transcribed_at"))
+    return rows
+
+
+def format_txt_header(meta: dict) -> str:
+    """A human-readable, === delimited metadata block for the .txt transcript."""
+    rows = _meta_rows(meta)
+    width = max((len(label) for label, _ in rows), default=0)
+    lines = [SEP]
+    for label, value in rows:
+        lines.append(f"{(label + ':').ljust(width + 1)}  {value}")
+    desc = meta.get("description")
+    if desc:
+        lines.append("")
+        lines.append("Description:")
+        lines.extend(f"  {dline}" for dline in desc.splitlines())
+    lines.append(SEP)
+    lines.append("")  # blank line between the block and the transcript
+    return "\n".join(lines) + "\n"
+
+
+def format_vtt_note(meta: dict) -> list[str]:
+    """A spec-valid WebVTT NOTE block (single-line entries; players ignore it)."""
+    # Note: description is intentionally omitted -- a blank line would end the
+    # NOTE block early and the description may contain blank lines.
+    return ["NOTE"] + [f"{label}: {value}" for label, value in _meta_rows(meta)]
+
+
+def write_outputs(
+    result: dict,
+    stem: Path,
+    formats: list[str],
+    meta: dict,
+    include_meta: bool = True,
+) -> list[Path]:
     import json
 
     segments = result.get("segments", [])
@@ -317,10 +405,12 @@ def write_outputs(result: dict, stem: Path, formats: list[str]) -> list[Path]:
 
     if "txt" in formats:
         p = stem.with_suffix(".txt")
-        p.write_text((result.get("text") or "").strip() + "\n", encoding="utf-8")
+        header = format_txt_header(meta) if include_meta else ""
+        p.write_text(header + (result.get("text") or "").strip() + "\n", encoding="utf-8")
         written.append(p)
 
     if "srt" in formats:
+        # SRT stays clean -- arbitrary headers break many SRT parsers/players.
         p = stem.with_suffix(".srt")
         lines = []
         for i, seg in enumerate(segments, 1):
@@ -334,6 +424,8 @@ def write_outputs(result: dict, stem: Path, formats: list[str]) -> list[Path]:
     if "vtt" in formats:
         p = stem.with_suffix(".vtt")
         lines = ["WEBVTT", ""]
+        if include_meta:
+            lines += format_vtt_note(meta) + [""]
         for seg in segments:
             lines.append(f"{_ts(seg['start'], '.')} --> {_ts(seg['end'], '.')}")
             lines.append(seg["text"].strip())
@@ -343,7 +435,8 @@ def write_outputs(result: dict, stem: Path, formats: list[str]) -> list[Path]:
 
     if "json" in formats:
         p = stem.with_suffix(".json")
-        p.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+        payload = {"metadata": meta, **result} if include_meta else result
+        p.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
         written.append(p)
 
     return written
@@ -373,12 +466,14 @@ def process_one(
             if all(p.exists() for p in output_paths(stem, formats)):
                 log(f"{prefix}Skipping (already transcribed): {title!r}")
                 return {"status": "skipped", "title": title, "source": source}
-        audio_src, title = download_audio(source, workdir)
+        audio_src, meta = download_audio(source, workdir)
+        title = meta["title"]
     else:
         src_path = Path(source).expanduser()
         if not src_path.exists():
             raise TranscribeError(f"Local file not found: {src_path}")
         audio_src, title = src_path, src_path.stem
+        meta = {"title": title, "url": None, "source_file": str(src_path.resolve())}
         stem = out_dir / sanitize(title)
         if args.skip_existing and all(p.exists() for p in output_paths(stem, formats)):
             log(f"{prefix}Skipping (already transcribed): {title!r}")
@@ -389,8 +484,17 @@ def process_one(
     audio_seconds = _wav_duration(wav)
     result = transcribe(wav, repo, args)
 
+    # Augment metadata with details only known after transcription.
+    meta = dict(meta)
+    meta["model"] = repo
+    meta["language"] = result.get("language")
+    meta["transcribed_at"] = datetime.now().isoformat(timespec="seconds")
+    if not meta.get("duration_seconds"):
+        meta["duration_seconds"] = round(audio_seconds) or None
+
     stem = out_dir / sanitize(title)
-    written = write_outputs(result, stem, formats)
+    written = write_outputs(result, stem, formats, meta,
+                            include_meta=not args.no_metadata)
     if args.save_audio:
         kept = stem.with_suffix(audio_src.suffix)
         shutil.copy2(audio_src, kept)
@@ -449,6 +553,10 @@ def main() -> None:
     parser.add_argument(
         "-f", "--formats", default="txt,srt,vtt,json",
         help="Comma-separated output formats (default: txt,srt,vtt,json)",
+    )
+    parser.add_argument(
+        "--no-metadata", action="store_true",
+        help="Don't prepend the source metadata block (URL, title, description...).",
     )
     parser.add_argument(
         "--skip-existing", action="store_true",

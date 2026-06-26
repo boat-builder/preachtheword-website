@@ -67,6 +67,43 @@ uv run transcribe.py "<url>" --save-audio --formats txt
 
 Output lands in `./transcripts/<video title>.{txt,srt,vtt,json}`.
 
+## Metadata header
+
+Each transcript is self-describing — whatever YouTube exposes (title, URL,
+channel, upload date, duration, video ID, views, categories, tags, description)
+is captured and written alongside the transcript:
+
+- **`.txt`** — a `===`-delimited block at the very top, then the transcript:
+
+  ```text
+  ========================================================================
+  Title:        Habakkuk 1 — Why, God?
+  URL:          https://www.youtube.com/watch?v=XXXXXXXXXXX
+  Channel:      Grace Church  (https://www.youtube.com/@...)
+  Uploaded:     2024-03-10
+  Duration:     1:04:22
+  Video ID:     XXXXXXXXXXX
+  Views:        12,345
+  Categories:   People & Blogs
+  Tags:         sermon, habakkuk, faith
+  Model:        mlx-community/whisper-large-v3-mlx
+  Language:     en
+  Transcribed:  2026-06-26T10:29:21
+
+  Description:
+    <the video's full description, indented>
+  ========================================================================
+
+  <transcript text...>
+  ```
+
+- **`.json`** — a `metadata` object next to `text` / `segments` / `language`.
+- **`.vtt`** — the same fields as a spec-valid `NOTE` block (players ignore it).
+- **`.srt`** — kept clean (no header), since arbitrary text breaks SRT parsers.
+
+Pass `--no-metadata` to omit the block. Local files get what's available
+(filename, source path, duration).
+
 ## Batch processing
 
 Transcribe many videos in one run. The model loads **once** and is reused across
@@ -113,6 +150,7 @@ interrupted batch.
 | `-l, --language` | auto | Force a language code, e.g. `en`. Skips detection. |
 | `-p, --prompt` | – | Initial prompt to bias spelling/punctuation. |
 | `-f, --formats` | `txt,srt,vtt,json` | Comma-separated subset. |
+| `--no-metadata` | off | Omit the source metadata block from outputs. |
 | `--word-timestamps` | off | Per-word timing (slower; tighter subtitles). |
 | `--no-context` | off | Don't condition on prior text (kills rare repetition loops). |
 | `--save-audio` | off | Keep the downloaded source audio. |
