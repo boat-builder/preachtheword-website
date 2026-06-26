@@ -173,8 +173,9 @@ The script allocates the `id` and unique `slug`, validates every field, folds ne
 tags into the vocabulary, and writes `content.json` atomically (preserving its
 exact formatting). Then — **on success only** — it cleans up: it deletes the
 source transcript `.txt` (via `--source`) so the next run won't pick it up again,
-and removes the staged `.work/<slug>.json` file (and the `.work/` dir if now
-empty). If it exits non-zero, nothing was written and nothing was deleted; fix the
+and removes the staged `.work/<slug>.json` file it was given (the `.work/`
+directory itself is left in place — it's shared with other processes). If it exits
+non-zero, nothing was written and nothing was deleted; fix the
 reported issue and rerun. (Pass `--keep-staged` if you want to keep the staged
 file for debugging.)
 

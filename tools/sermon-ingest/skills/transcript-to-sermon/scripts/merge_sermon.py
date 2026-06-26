@@ -330,12 +330,10 @@ def main() -> None:
             print(f"WARNING: --source given but not found: {src}", file=sys.stderr)
 
     if not args.keep_staged:
+        # Remove only the staged file we were handed — never the .work directory
+        # itself, which is shared with other processes.
         staged_path.unlink(missing_ok=True)
         print(f"OK: removed staged file {staged_path}")
-        # Drop the .work scratch dir too if it's now empty.
-        parent = staged_path.parent
-        if parent.name == ".work" and not any(parent.iterdir()):
-            parent.rmdir()
 
 
 if __name__ == "__main__":
