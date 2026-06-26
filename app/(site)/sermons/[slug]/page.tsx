@@ -11,10 +11,12 @@ import {
   watchUrl,
   thumbUrl,
   thumbUrlHd,
+  durationIso,
   getTheme,
 } from '@/lib/sermons';
 import { SITE, absoluteUrl } from '@/lib/site';
 import { SermonShareRow } from '@/components/ShareControls';
+import Duration from '@/components/Duration';
 import Transcript from '@/components/Transcript';
 import RelatedSermons from '@/components/RelatedSermons';
 import styles from './sermon.module.css';
@@ -89,6 +91,8 @@ export default async function SermonPage({
       url: SITE.url,
     },
     about: themeName(sermon.category),
+    // Length as ISO 8601, only when we have it (improves video rich results).
+    ...(sermon.durationSeconds ? { duration: durationIso(sermon.durationSeconds) } : {}),
     // Omit the transcript entirely when absent (D6 / spec §8).
     ...(sermon.transcript ? { transcript: sermon.transcript } : {}),
     inLanguage: 'en',
@@ -133,6 +137,12 @@ export default async function SermonPage({
         <span className={styles.crumbMuted}>{sermon.ref}</span>
         <span className={styles.crumbDivider}>·</span>
         <span className={styles.crumbMuted}>{formatDate(sermon.date)}</span>
+        {sermon.durationSeconds ? (
+          <>
+            <span className={styles.crumbDivider}>·</span>
+            <Duration seconds={sermon.durationSeconds} className={styles.crumbMuted} />
+          </>
+        ) : null}
       </div>
 
       <h1 className={styles.title}>{sermon.title}</h1>

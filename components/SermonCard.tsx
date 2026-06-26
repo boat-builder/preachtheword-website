@@ -3,10 +3,12 @@ import Image from 'next/image';
 import {
   type Sermon,
   formatDate,
+  formatDuration,
   themeName,
   thumbUrl,
 } from '@/lib/sermons';
 import { CardShareButton } from './ShareControls';
+import Duration from './Duration';
 import styles from './SermonCard.module.css';
 
 export default function SermonCard({
@@ -42,10 +44,14 @@ export default function SermonCard({
           <div className={styles.metaRow}>
             <span className={styles.chip}>{themeName(sermon.category)}</span>
             <span className={styles.date}>{formatDate(sermon.date)}</span>
+            {sermon.durationSeconds ? (
+              <Duration seconds={sermon.durationSeconds} />
+            ) : null}
           </div>
         ) : (
           <span className={styles.refDate}>
             {sermon.ref} · {formatDate(sermon.date)}
+            {sermon.durationSeconds ? ` · ${formatDuration(sermon.durationSeconds)}` : ''}
           </span>
         )}
 

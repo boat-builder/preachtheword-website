@@ -38,6 +38,8 @@ export interface Sermon {
   tags: string[];
   short: string;
   long: string[];
+  /** Optional video length in whole seconds (from YouTube). Omitted ⇒ not shown. */
+  durationSeconds?: number;
   /** Optional; omitted/empty ⇒ no transcript section and absent from JSON-LD. */
   transcript?: string;
   /** ISO timestamp set on every admin write; feeds sitemap freshness. */
@@ -161,6 +163,46 @@ export function formatDate(iso: string): string {
   } catch {
     return iso;
   }
+}
+
+/**
+ * Format a length in seconds as a clock string: "0:19", "42:15", "1:02:33".
+ * Minutes are zero-padded only when an hours segment is present (YouTube style).
+ */
+export function formatDuration(totalSeconds: number): string {
+  const s = Math.max(0, Math.round(totalSeconds));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  const mm = h > 0 ? String(m).padStart(2, '0') : String(m);
+  return h > 0 ? `${h}:${mm}:${String(sec).padStart(2, '0')}` : `${m}:${String(sec).padStart(2, '0')}`;
+}
+
+/**
+ * Parse a human "h:mm:ss" / "mm:ss" / bare-seconds string into whole seconds.
+ * Returns null for anything non-numeric, empty, or zero. Used by the admin form
+ * so an operator can type or correct a duration the auto-fetch couldn't supply.
+ */
+export function parseDuration(input: string): number | null {
+  const raw = input.trim();
+  if (!raw) return null;
+  const parts = raw.split(':').map((p) => p.trim());
+  if (parts.length > 3 || parts.some((p) => !/^\d+$/.test(p))) return null;
+  const seconds = parts.reduce((acc, p) => acc * 60 + Number(p), 0);
+  return seconds > 0 ? seconds : null;
+}
+
+/** ISO 8601 duration ("PT42M15S") for schema.org VideoObject.duration. */
+export function durationIso(totalSeconds: number): string {
+  const s = Math.max(0, Math.round(totalSeconds));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  let out = 'PT';
+  if (h) out += `${h}H`;
+  if (m) out += `${m}M`;
+  if (sec || (!h && !m)) out += `${sec}S`;
+  return out;
 }
 
 /** Most recent first. */

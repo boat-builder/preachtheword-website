@@ -87,6 +87,10 @@ function buildSermonFields(
     short: parsed.short,
     long: parsed.long,
   };
+  // Only persist a duration when provided (omitted ⇒ no duration shown).
+  if (parsed.durationSeconds) {
+    fields.durationSeconds = parsed.durationSeconds;
+  }
   // Only persist a transcript when non-empty (spec: empty ⇒ omit it entirely).
   if (parsed.transcript && parsed.transcript.trim()) {
     fields.transcript = parsed.transcript;
@@ -173,7 +177,8 @@ export function updateSermon(
   }
 
   Object.assign(sermon, buildSermonFields(parsed), { tags: tagIds });
-  // buildSermonFields omits transcript when empty; clear a now-removed transcript.
+  // buildSermonFields omits these when empty; clear values that were just removed.
+  if (!parsed.durationSeconds) delete sermon.durationSeconds;
   if (!(parsed.transcript && parsed.transcript.trim())) delete sermon.transcript;
 
   // Tri-state featured: only change it on an explicit intent. Omitted (undefined)

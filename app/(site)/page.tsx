@@ -6,6 +6,7 @@ import {
   featuredSermon,
   latestSermons,
   formatDate,
+  formatDuration,
   thumbUrl,
 } from '@/lib/sermons';
 import { SITE } from '@/lib/site';
@@ -38,6 +39,12 @@ export default function HomePage() {
               <span className={styles.heroRef}>{featured.ref}</span>
               <span className={styles.dot}>·</span>
               <span>{formatDate(featured.date)}</span>
+              {featured.durationSeconds ? (
+                <>
+                  <span className={styles.dot}>·</span>
+                  <span>{formatDuration(featured.durationSeconds)}</span>
+                </>
+              ) : null}
             </div>
             <p className={styles.heroShort}>{featured.short}</p>
             <div className={styles.heroActions}>

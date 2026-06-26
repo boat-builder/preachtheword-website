@@ -14,6 +14,8 @@ export interface FormState {
   tags: string[];
   ref: string;
   date: string;
+  /** Human "mm:ss" / "h:mm:ss" text; parsed to durationSeconds on save. */
+  duration: string;
   slug: string;
   transcript: string;
 }
@@ -26,6 +28,7 @@ export type FormErrorKey =
   | 'category'
   | 'ref'
   | 'date'
+  | 'duration'
   | 'slug'
   | 'tags';
 
