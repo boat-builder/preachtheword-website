@@ -1,9 +1,10 @@
 # YouTube → Transcript (local, Apple Silicon)
 
-Download a YouTube video's audio and transcribe it **fully locally** using
+Download YouTube videos' audio and transcribe them **fully locally** using
 [MLX Whisper](https://github.com/ml-explore/mlx-examples/tree/main/whisper),
 which runs `whisper-large-v3` on the Mac GPU (Metal). Built for long-form audio
-(1–2 hour sermons / talks) where **accuracy is the priority**.
+(1–2 hour sermons / talks) where **accuracy is the priority**. Does one video or
+a whole batch in a single run.
 
 Nothing is uploaded anywhere — the model runs on your machine.
 
@@ -66,10 +67,47 @@ uv run transcribe.py "<url>" --save-audio --formats txt
 
 Output lands in `./transcripts/<video title>.{txt,srt,vtt,json}`.
 
+## Batch processing
+
+Transcribe many videos in one run. The model loads **once** and is reused across
+every item, so there's no per-video startup cost.
+
+Make a list file — one URL per line; blank lines and `#` comments are ignored
+(see [`links.example.txt`](links.example.txt)):
+
+```text
+https://www.youtube.com/watch?v=AAAAAAAAAAA
+https://www.youtube.com/watch?v=BBBBBBBBBBB
+# this one is skipped
+# https://www.youtube.com/watch?v=CCCCCCCCCCC
+```
+
+Then run any of:
+
+```bash
+# Explicit batch flag (repeatable; combine with --skip-existing to resume)
+uv run transcribe.py --batch links.txt --skip-existing
+
+# A .txt / .list file as a positional arg is auto-detected as a URL list
+uv run transcribe.py links.txt
+
+# Or just list URLs directly on the command line
+uv run transcribe.py "<url1>" "<url2>" "<url3>"
+```
+
+Each video is processed independently: if one fails (private, removed, network
+error) it's logged and the batch continues. At the end you get a summary —
+`N done, M skipped, K failed` — with the reason for each failure, and the script
+exits non-zero if anything failed (handy for scripting). `--skip-existing` skips
+any video whose transcript files are already present, so you can safely re-run an
+interrupted batch.
+
 ### Options
 
 | Flag | Default | Description |
 | --- | --- | --- |
+| `-b, --batch` | – | File with one URL per line (`#` comments + blanks ignored). Repeatable; combinable with positional sources. |
+| `--skip-existing` | off | Skip items whose transcript files already exist (resume a batch). |
 | `-m, --model` | `large-v3` | `large-v3`, `large-v3-turbo`, `large-v3-q4`, `turbo-q4`, `medium`, `small`, `tiny`, or any HF repo id. |
 | `-o, --output-dir` | `./transcripts` | Output directory. |
 | `-l, --language` | auto | Force a language code, e.g. `en`. Skips detection. |
