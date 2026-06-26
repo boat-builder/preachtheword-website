@@ -181,8 +181,9 @@ file for debugging.)
 
 ### 9. Report
 
-Tell the user which sermon was added (id, slug, title), how many new tags were
-created, and that the source transcript was deleted.
+List `tools/transcribe/transcripts/*.txt` to confirm the source file is gone, then
+tell the user the sermon added (id, slug, title), any new tags, and that the
+transcript is deleted.
 
 ## Notes
 
