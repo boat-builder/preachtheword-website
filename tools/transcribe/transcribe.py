@@ -551,8 +551,9 @@ def main() -> None:
         help="Initial prompt to bias spelling/punctuation (proper nouns, names).",
     )
     parser.add_argument(
-        "-f", "--formats", default="txt,srt,vtt,json",
-        help="Comma-separated output formats (default: txt,srt,vtt,json)",
+        "-f", "--formats", default="txt",
+        help="Comma-separated output formats: txt, srt, vtt, json (default: txt). "
+             "srt/vtt/json carry the same words plus per-segment timestamps.",
     )
     parser.add_argument(
         "--no-metadata", action="store_true",

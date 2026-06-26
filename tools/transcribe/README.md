@@ -61,11 +61,14 @@ uv run transcribe.py "<url>" --language en \
 # Transcribe a file you already downloaded
 uv run transcribe.py ./sermon.m4a
 
-# Keep the source audio, only emit plain text
-uv run transcribe.py "<url>" --save-audio --formats txt
+# Also emit timestamped subtitles / structured JSON (not just plain text)
+uv run transcribe.py "<url>" --formats txt,srt,vtt,json
 ```
 
-Output lands in `./transcripts/<video title>.{txt,srt,vtt,json}`.
+By default you get a single `./transcripts/<video title>.txt`. The optional
+`srt` / `vtt` / `json` formats hold the **same words** — they just add
+per-segment timestamps (and `json` is the structured form). Request them with
+`--formats` only if you need captions or timing.
 
 ## Metadata header
 
@@ -149,7 +152,7 @@ interrupted batch.
 | `-o, --output-dir` | `./transcripts` | Output directory. |
 | `-l, --language` | auto | Force a language code, e.g. `en`. Skips detection. |
 | `-p, --prompt` | – | Initial prompt to bias spelling/punctuation. |
-| `-f, --formats` | `txt,srt,vtt,json` | Comma-separated subset. |
+| `-f, --formats` | `txt` | Comma-separated subset of `txt,srt,vtt,json`. The others add per-segment timestamps. |
 | `--no-metadata` | off | Omit the source metadata block from outputs. |
 | `--word-timestamps` | off | Per-word timing (slower; tighter subtitles). |
 | `--no-context` | off | Don't condition on prior text (kills rare repetition loops). |
