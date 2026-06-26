@@ -21,6 +21,10 @@ and long monologues well. On an M1 Max a 1–2 hour talk transcribes in roughly
 **10–25 min**. Need it faster? `--model large-v3-turbo` is ~2–3× quicker for a
 small accuracy trade-off.
 
+Because runs are long, a **live progress bar** (percentage through the audio,
+with an ETA) is shown by default while transcribing. Use `-v/--verbose` to watch
+the transcript stream out segment by segment instead, or `--quiet` for neither.
+
 ## Setup
 
 **Option A — zero setup (recommended).** With [`uv`](https://docs.astral.sh/uv/)
@@ -157,7 +161,8 @@ interrupted batch.
 | `--word-timestamps` | off | Per-word timing (slower; tighter subtitles). |
 | `--no-context` | off | Don't condition on prior text (kills rare repetition loops). |
 | `--save-audio` | off | Keep the downloaded source audio. |
-| `--quiet` | off | Less logging. |
+| `-v, --verbose` | off | Stream the transcript text live as it's decoded (instead of the bar). |
+| `--quiet` | off | No transcription progress bar/text (step logging stays). |
 
 ## Accuracy tips for sermons
 
