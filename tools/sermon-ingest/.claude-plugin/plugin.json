@@ -1,0 +1,8 @@
+{
+  "name": "sermon-ingest",
+  "version": "0.1.0",
+  "description": "Convert raw sermon transcripts into publish-ready records in the Preach the Word content store (data/content.json), with a verification sub-agent and a safe Python merge step.",
+  "author": {
+    "name": "Preach the Word"
+  }
+}
