@@ -61,8 +61,6 @@ export const sermonInputSchema = z.object({
     (v) => (v === '' || v === null ? undefined : v),
     z.number().int().positive().max(86400, 'Duration looks too long').optional(),
   ),
-  // Preserve newlines; do NOT trim interior content. Empty ⇒ omitted downstream.
-  transcript: z.string().optional().default(''),
   // Tag *ids*; existence/retired checks happen in content.ts against the store.
   tags: z.array(z.string()).optional().default([]),
   category: z.enum(THEME_KEYS),

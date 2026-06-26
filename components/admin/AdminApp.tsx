@@ -233,7 +233,6 @@ export default function AdminApp({ initialContent, operator }: AdminAppProps) {
     date: todayIso(),
     duration: '',
     slug: '',
-    transcript: '',
   });
 
   const toForm = (s: SermonRecord): FormState => ({
@@ -250,7 +249,6 @@ export default function AdminApp({ initialContent, operator }: AdminAppProps) {
     date: s.date,
     duration: s.durationSeconds ? formatDuration(s.durationSeconds) : '',
     slug: s.slug,
-    transcript: s.transcript || '',
   });
 
   const startAdd = () => {
@@ -392,7 +390,6 @@ export default function AdminApp({ initialContent, operator }: AdminAppProps) {
     short: f.short.trim(),
     long: f.longText, // server splits paragraphs on blank lines
     durationSeconds: parseDuration(f.duration) ?? undefined,
-    transcript: f.transcript,
     tags: f.tags, // tag ids
     category: f.category as ThemeKey,
     // Normalize the slug exactly as the server does, so the client never sends a
