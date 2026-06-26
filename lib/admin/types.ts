@@ -29,6 +29,8 @@ export interface SermonRecord {
   short: string;
   /** Body as an array of paragraphs (≥ 1). */
   long: string[];
+  /** Optional video length in whole seconds (from YouTube). Omitted ⇒ not shown. */
+  durationSeconds?: number;
   /** Optional; preserves "\n". Empty/omitted ⇒ omit from page + JSON-LD. */
   transcript?: string;
   /** At most ONE record may be true. */

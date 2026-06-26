@@ -2,7 +2,8 @@
 //
 // - extractVideoId: pure parser — accepts a full URL or a bare 11-char id.
 // - oEmbed (keyless): confirms the video exists + gives title/author/thumbnail.
-// - Data API v3 (needs YOUTUBE_API_KEY): adds publishedAt (→ date) + description.
+// - Data API v3 (needs YOUTUBE_API_KEY): adds publishedAt (→ date), description,
+//   and contentDetails.duration (→ durationSeconds).
 
 import { youtubeApiKey } from './config';
 
@@ -49,6 +50,8 @@ export interface VideoPrefill {
   thumbnailUrl?: string;
   /** YYYY-MM-DD — only available via the Data API. */
   date?: string;
+  /** Video length in whole seconds — only available via the Data API. */
+  durationSeconds?: number;
   /** Full description — only via the Data API; UI may seed short/long from it. */
   description?: string;
   /** Where the metadata came from. */
@@ -83,20 +86,37 @@ async function fetchOEmbed(videoId: string) {
   };
 }
 
-/** Data API lookup (needs a key): title, description, publishedAt. */
+/** Parse a YouTube ISO 8601 duration ("PT1H2M33S") into whole seconds. */
+function parseIso8601Duration(iso: string): number | undefined {
+  const m = /^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/.exec(iso.trim());
+  if (!m) return undefined;
+  const total = Number(m[1] ?? 0) * 3600 + Number(m[2] ?? 0) * 60 + Number(m[3] ?? 0);
+  return total > 0 ? total : undefined;
+}
+
+/** Data API lookup (needs a key): title, description, publishedAt, duration. */
 async function fetchDataApi(videoId: string, key: string) {
   const url =
-    `https://www.googleapis.com/youtube/v3/videos?part=snippet` +
+    `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails` +
     `&id=${encodeURIComponent(videoId)}&key=${encodeURIComponent(key)}`;
   const data = (await getJson(url)) as
-    | { items?: Array<{ snippet?: { title?: string; description?: string; publishedAt?: string } }> }
+    | {
+        items?: Array<{
+          snippet?: { title?: string; description?: string; publishedAt?: string };
+          contentDetails?: { duration?: string };
+        }>;
+      }
     | null;
-  const snippet = data?.items?.[0]?.snippet;
+  const item = data?.items?.[0];
+  const snippet = item?.snippet;
   if (!snippet) return null;
   return {
     title: snippet.title,
     description: snippet.description,
     date: snippet.publishedAt ? snippet.publishedAt.slice(0, 10) : undefined,
+    durationSeconds: item?.contentDetails?.duration
+      ? parseIso8601Duration(item.contentDetails.duration)
+      : undefined,
   };
 }
 
@@ -126,6 +146,7 @@ export async function prefillFromVideo(input: string): Promise<VideoPrefill | nu
       result.title = api.title ?? result.title;
       result.description = api.description;
       result.date = api.date;
+      result.durationSeconds = api.durationSeconds;
     }
   }
 

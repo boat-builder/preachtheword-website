@@ -55,6 +55,12 @@ export const sermonInputSchema = z.object({
       .array(z.string().trim().min(1, 'Paragraphs cannot be empty'))
       .min(1, 'Add at least one paragraph'),
   ),
+  // Whole-second video length. Empty string/null/undefined ⇒ omitted downstream.
+  // Cap at 24h as a sanity bound (a sermon is never longer).
+  durationSeconds: z.preprocess(
+    (v) => (v === '' || v === null ? undefined : v),
+    z.number().int().positive().max(86400, 'Duration looks too long').optional(),
+  ),
   // Preserve newlines; do NOT trim interior content. Empty ⇒ omitted downstream.
   transcript: z.string().optional().default(''),
   // Tag *ids*; existence/retired checks happen in content.ts against the store.

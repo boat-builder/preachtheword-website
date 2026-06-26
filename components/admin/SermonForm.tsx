@@ -163,6 +163,19 @@ export default function SermonForm({
             {errors.date && <div className={styles.errText}>{errors.date}</div>}
           </div>
         </div>
+        <label className={styles.label} style={{ marginTop: 16 }}>
+          Length{' '}
+          <span className={styles.labelHint}>
+            — optional; filled in from the video when available (e.g. 42:15)
+          </span>
+        </label>
+        <input
+          value={form.duration}
+          onChange={(e) => onField('duration', e.target.value)}
+          placeholder="e.g. 42:15"
+          className={styles.field}
+        />
+        {errors.duration && <div className={styles.errText}>{errors.duration}</div>}
       </section>
 
       {/* 3. THEME */}

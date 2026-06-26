@@ -6,7 +6,13 @@ import { THEMES, formatAdminDate, todayIso, type ThemeKey } from '@/lib/admin';
 // Use the canonical slugifier the server uses, so client preview/validation and
 // the stored slug always agree (transliterates accents, drops apostrophes).
 import { slugify } from '@/lib/admin/slugify';
-import { themeName, thumbUrl, watchUrl } from '@/lib/sermons';
+import {
+  themeName,
+  thumbUrl,
+  watchUrl,
+  formatDuration,
+  parseDuration,
+} from '@/lib/sermons';
 import type { ContentFile, SermonRecord, ReleaseStatus } from '@/lib/admin/types';
 import type { SermonInput } from '@/lib/admin/validation';
 import {
@@ -184,6 +190,7 @@ export default function AdminApp({ initialContent, operator }: AdminAppProps) {
       category: 'category',
       ref: 'ref',
       date: 'date',
+      durationSeconds: 'duration',
       slug: 'slug',
       tags: 'tags',
     };
@@ -224,6 +231,7 @@ export default function AdminApp({ initialContent, operator }: AdminAppProps) {
     tags: [],
     ref: '',
     date: todayIso(),
+    duration: '',
     slug: '',
     transcript: '',
   });
@@ -240,6 +248,7 @@ export default function AdminApp({ initialContent, operator }: AdminAppProps) {
     tags: [...s.tags], // tag ids
     ref: s.ref,
     date: s.date,
+    duration: s.durationSeconds ? formatDuration(s.durationSeconds) : '',
     slug: s.slug,
     transcript: s.transcript || '',
   });
@@ -308,6 +317,9 @@ export default function AdminApp({ initialContent, operator }: AdminAppProps) {
       }
       const filledTitle = !form.title && !!data.title;
       const filledDate = !!data.date && formMode === 'add';
+      // Fill the length whenever the field is empty (safe in add or edit — never
+      // overwrites a value the operator has already typed or corrected).
+      const filledDuration = !!data.durationSeconds && !form.duration;
       setForm((f) => {
         if (!f) return f;
         const next: FormState = {
@@ -320,12 +332,14 @@ export default function AdminApp({ initialContent, operator }: AdminAppProps) {
           if (!slugTouched) next.slug = slugify(data.title);
         }
         if (filledDate) next.date = data.date;
+        if (filledDuration) next.duration = formatDuration(data.durationSeconds);
         return next;
       });
       setFetchKind('ok');
       const filled = [
         filledTitle ? 'title' : '',
         filledDate ? 'date' : '',
+        filledDuration ? 'length' : '',
       ].filter(Boolean);
       setFetchMsg(
         `Video found. Preview image${
@@ -360,6 +374,8 @@ export default function AdminApp({ initialContent, operator }: AdminAppProps) {
     if (!f.category) e.category = 'Choose one theme.';
     if (!f.ref.trim()) e.ref = 'Add a scripture reference.';
     if (!f.date) e.date = 'Set the date of the sermon.';
+    if (f.duration.trim() && parseDuration(f.duration) === null)
+      e.duration = 'Enter a length like 42:15 (minutes and seconds).';
     const slug = slugify(f.slug || f.title);
     if (!slug) e.slug = 'A web address is required.';
     else {
@@ -375,6 +391,7 @@ export default function AdminApp({ initialContent, operator }: AdminAppProps) {
     title: f.title.trim(),
     short: f.short.trim(),
     long: f.longText, // server splits paragraphs on blank lines
+    durationSeconds: parseDuration(f.duration) ?? undefined,
     transcript: f.transcript,
     tags: f.tags, // tag ids
     category: f.category as ThemeKey,
